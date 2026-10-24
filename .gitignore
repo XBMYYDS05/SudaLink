@@ -1,0 +1,29 @@
+# 构建产物
+bin/
+obj/
+dist/
+publish/
+*.user
+*.suo
+
+# 发布出来的单文件程序
+*.exe
+*.pdb
+*.dll
+
+# 运行期配置：**含加密后的账号密码，绝不能提交**
+sudalink.json
+sudalink.json.*
+accounts.txt
+current.txt
+settings.txt
+*.log
+
+# 工作区私有数据（会话记录、截图草稿、反编译产物、本地 SDK）
+.workbuddy/
+CampusNet(2).exe
+
+# 系统
+.DS_Store
+Thumbs.db
+desktop.ini
