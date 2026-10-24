@@ -1,0 +1,38 @@
+name: build
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: 单元测试
+        run: dotnet run --project tests/SudaLink.Tests/SudaLink.Tests.csproj -c Release
+
+      - name: 发布单文件
+        run: dotnet publish src/SudaLink/SudaLink.csproj -c Release -o dist
+
+      - name: 上传产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: SudaLink-win-x64
+          path: dist/SudaLink.exe
+
+      - name: 附到 Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/SudaLink.exe
+          generate_release_notes: true
