@@ -4,7 +4,7 @@ using System.Windows.Interop;
 
 namespace SudaLink;
 
-/// <summary>窗口外观微调：交给 DWM 处理圆角，保证与系统原生视觉一致、文字不被降质。</summary>
+/// <summary>窗口外观：DWM 圆角 + 亚克力背景（液态玻璃的“底”）。</summary>
 internal static class WindowFx
 {
     private const int DwmwaWindowCornerPreference = 33;
@@ -13,11 +13,14 @@ internal static class WindowFx
 
     public static void Attach(Window window)
     {
-        window.SourceInitialized += (_, _) => Apply(window);
-        window.StateChanged += (_, _) => Apply(window);
+        window.SourceInitialized += (_, _) =>
+        {
+            ApplyRounding(window);
+        };
+        window.StateChanged += (_, _) => ApplyRounding(window);
     }
 
-    private static void Apply(Window window)
+    private static void ApplyRounding(Window window)
     {
         var handle = new WindowInteropHelper(window).Handle;
         if (handle == IntPtr.Zero)
@@ -30,7 +33,6 @@ internal static class WindowFx
         }
         catch (DllNotFoundException)
         {
-            // 老系统没有该接口，保持方形窗口即可
         }
         catch (EntryPointNotFoundException)
         {

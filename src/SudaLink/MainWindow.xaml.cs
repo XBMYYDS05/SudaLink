@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using System.Windows.Media.Animation;
 using Brush = System.Windows.Media.Brush;
 using Color = System.Windows.Media.Color;
@@ -13,11 +14,18 @@ namespace SudaLink;
 
 public partial class MainWindow : Window
 {
-    private static readonly Brush OnlineBrush = new SolidColorBrush(Color.FromRgb(14, 159, 110));
-    private static readonly Brush OfflineBrush = new SolidColorBrush(Color.FromRgb(217, 119, 6));
-    private static readonly Brush BusyBrush = new SolidColorBrush(Color.FromRgb(37, 99, 235));
-    private static readonly Brush ErrorBrush = new SolidColorBrush(Color.FromRgb(220, 38, 38));
-    private static readonly Brush IdleBrush = new SolidColorBrush(Color.FromRgb(154, 161, 172));
+    // 深色底上的语义色：比浅色主题提亮一档，才能在玻璃上"发光"
+    private static readonly Color OnlineColor = Color.FromRgb(0x2F, 0xE3, 0x9A);
+    private static readonly Color WarnColor = Color.FromRgb(0xFF, 0xA5, 0x3D);
+    private static readonly Color BusyColor = Color.FromRgb(0x6E, 0x9B, 0xFF);
+    private static readonly Color ErrorColor = Color.FromRgb(0xFF, 0x5F, 0x73);
+    private static readonly Color IdleColor = Color.FromRgb(0x6C, 0x7A, 0x93);
+
+    private static readonly Brush OnlineBrush = Freeze(OnlineColor);
+    private static readonly Brush OfflineBrush = Freeze(WarnColor);
+    private static readonly Brush BusyBrush = Freeze(BusyColor);
+    private static readonly Brush ErrorBrush = Freeze(ErrorColor);
+    private static readonly Brush IdleBrush = Freeze(IdleColor);
 
     private readonly AppConfig _config;
     private readonly ConfigStore _store;
@@ -29,6 +37,7 @@ public partial class MainWindow : Window
     private bool _exitRequested;
     private bool _cleanedUp;
     private bool _hotspotBusy;
+    private bool _loadingSettings;
     private bool _hotspotOn;
     private bool _pulsing;
     private Storyboard? _pulse;
@@ -66,7 +75,9 @@ public partial class MainWindow : Window
         AddLog(new LogEntry(DateTime.Now, "信息", "SudaLink 已在后台守护校园网"));
         if (!string.IsNullOrWhiteSpace(_startupWarning))
             AddLog(new LogEntry(DateTime.Now, "警告", _startupWarning));
+        ApplyBackdrop();
         UpdatePauseButton();
+        UpdateLogFooter();
         _ = RefreshHotspotAsync();
         _monitor.Start();
         if (StartInTray)
@@ -128,22 +139,21 @@ public partial class MainWindow : Window
                 return;
             }
 
-            var (title, shortText, brush) = snapshot.Status switch
+            var (title, shortText, brush, glow) = snapshot.Status switch
             {
-                ConnectionStatus.Online => ("网络已连接", "已连接", OnlineBrush),
-                ConnectionStatus.Offline => ("网络未连接", "未联网", OfflineBrush),
-                ConnectionStatus.NoCampusNetwork => ("未在校园网环境", "网关不可达", OfflineBrush),
-                ConnectionStatus.Authenticating => ("正在认证", "认证中", BusyBrush),
-                ConnectionStatus.Failed => ("连接需要处理", "认证失败", ErrorBrush),
-                ConnectionStatus.Paused => ("自动重连已暂停", "已暂停", IdleBrush),
-                _ => ("正在检测网络", "检测中", BusyBrush)
+                ConnectionStatus.Online => ("网络已连接", "已连接", OnlineBrush, OnlineColor),
+                ConnectionStatus.Offline => ("网络未连接", "未联网", OfflineBrush, WarnColor),
+                ConnectionStatus.NoCampusNetwork => ("未在校园网环境", "网关不可达", OfflineBrush, WarnColor),
+                ConnectionStatus.Authenticating => ("正在认证", "认证中", BusyBrush, BusyColor),
+                ConnectionStatus.Failed => ("连接需要处理", "认证失败", ErrorBrush, ErrorColor),
+                ConnectionStatus.Paused => ("自动重连已暂停", "已暂停", IdleBrush, IdleColor),
+                _ => ("正在检测网络", "检测中", BusyBrush, BusyColor)
             };
 
             SoftChange(StatusMessage, snapshot.Message);
             SoftChange(StatusTitle, title);
             StatusDot.Fill = brush;
-            SideStatusDot.Fill = brush;
-            SideStatus.Text = shortText;
+            AnimateGlow(glow);
             _tray.Text = TrimTrayText($"SudaLink · {shortText}");
 
             SetPulse(snapshot.Status is ConnectionStatus.Checking or ConnectionStatus.Authenticating, brush);
@@ -161,7 +171,7 @@ public partial class MainWindow : Window
     {
         var paused = _monitor.IsPaused;
         PauseText.Text = paused ? "重连已暂停" : "重连守护中";
-        PauseButton.Style = (Style)FindResource(paused ? "GhostOff" : "GhostOn");
+        PauseButton.Style = (Style)FindResource(paused ? "PillOff" : "PillOn");
         PauseButton.ToolTip = paused ? "点击恢复自动重连" : "点击暂停自动重连";
     }
 
@@ -172,7 +182,7 @@ public partial class MainWindow : Window
     {
         _hotspotOn = on;
         HotspotText.Text = on ? "热点已开启" : "热点未开启";
-        HotspotButton.Style = (Style)FindResource(on ? "GhostOn" : "GhostOff");
+        HotspotButton.Style = (Style)FindResource(on ? "PillOn" : "PillOff");
         HotspotButton.ToolTip = on ? "点击关闭移动热点" : "点击开启移动热点";
     }
 
@@ -186,6 +196,7 @@ public partial class MainWindow : Window
             _logs.Insert(0, entry);
             while (_logs.Count > 400)
                 _logs.RemoveAt(_logs.Count - 1);
+            UpdateLogFooter();
         });
     }
 
@@ -201,20 +212,49 @@ public partial class MainWindow : Window
         DashboardPage.Visibility = page == "Overview" ? Visibility.Visible : Visibility.Collapsed;
         AccountsPage.Visibility = page == "Accounts" ? Visibility.Visible : Visibility.Collapsed;
         SettingsPage.Visibility = page == "Settings" ? Visibility.Visible : Visibility.Collapsed;
-        var (title, subtitle) = page switch
-        {
-            "Accounts" => ("账号", "学号与运营商组合决定认证出口"),
-            "Settings" => ("设置", "自动守护、热点与启动行为"),
-            _ => ("概览", "校园网连接状态与自动守护")
-        };
-        PageTitle.Text = title;
-        PageSubtitle.Text = subtitle;
-        NavOverview.IsChecked = page == "Overview";
-        NavAccounts.IsChecked = page == "Accounts";
-        NavSettings.IsChecked = page == "Settings";
+        TabOverview.IsChecked = page == "Overview";
+        TabAccounts.IsChecked = page == "Accounts";
+        TabSettings.IsChecked = page == "Settings";
         if (changed)
             AnimateIn(target);
     }
+
+    /// <summary>开发期截图：把三个页面各渲染一张 PNG（供 <c>--render=</c> 使用）。</summary>
+    public async Task RenderSnapshotsAsync(string directory)
+    {
+        Directory.CreateDirectory(directory);
+        var suffix = ThemeService.Current == ThemeService.Light ? "light" : "dark";
+        await Task.Delay(900);
+        foreach (var (page, name) in new[]
+                 {
+                     ("Overview", "overview"), ("Accounts", "accounts"), ("Settings", "settings")
+                 })
+        {
+            SetPage(page);
+            await Task.Delay(520);
+            SaveSnapshot(Path.Combine(directory, $"{suffix}-{name}.png"));
+        }
+    }
+
+    private void SaveSnapshot(string path)
+    {
+        if (Content is not FrameworkElement root || root.ActualWidth < 1)
+            return;
+
+        const double scale = 2.0;
+        var bitmap = new RenderTargetBitmap(
+            (int)Math.Ceiling(root.ActualWidth * scale),
+            (int)Math.Ceiling(root.ActualHeight * scale),
+            RTB_DPI * scale, RTB_DPI * scale, PixelFormats.Pbgra32);
+        bitmap.Render(root);
+
+        var encoder = new PngBitmapEncoder();
+        encoder.Frames.Add(BitmapFrame.Create(bitmap));
+        using var stream = File.Create(path);
+        encoder.Save(stream);
+    }
+
+    private const double RTB_DPI = 96;
 
     /// <summary>页面切换：淡入并轻微上浮，避免生硬跳转。</summary>
     private void AnimateIn(FrameworkElement element)
@@ -228,17 +268,8 @@ public partial class MainWindow : Window
         element.BeginAnimation(OpacityProperty,
             new DoubleAnimation(0.15, 1, TimeSpan.FromMilliseconds(240)) { EasingFunction = ease });
         shift.BeginAnimation(TranslateTransform.YProperty,
-            new DoubleAnimation(8, 0, TimeSpan.FromMilliseconds(300)) { EasingFunction = ease });
-        Flash(PageTitle);
-        Flash(PageSubtitle);
+            new DoubleAnimation(10, 0, TimeSpan.FromMilliseconds(320)) { EasingFunction = ease });
     }
-
-    private static void Flash(UIElement element) =>
-        element.BeginAnimation(OpacityProperty,
-            new DoubleAnimation(0.3, 1, TimeSpan.FromMilliseconds(280))
-            {
-                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
-            });
 
     /// <summary>文字变化时做一次极轻的淡入，提示内容已更新。</summary>
     private static void SoftChange(TextBlock block, string text)
@@ -287,7 +318,6 @@ public partial class MainWindow : Window
         AccountsList.SelectedItem = _config.Accounts.FirstOrDefault(a => a.Id == (selectId ?? _config.CurrentAccountId));
         var current = _config.CurrentAccount;
         UpdateCurrentAccountLabel(current?.Username);
-        SideAccount.Text = current is null ? "未选择账号" : $"{current.CarrierName} · {current.Number}";
     }
 
     private void UpdateCurrentAccountLabel(string? username)
@@ -457,6 +487,49 @@ public partial class MainWindow : Window
         CloseToTraySwitch.IsChecked = _config.Settings.CloseToTray;
         GatewayInput.Text = _config.Settings.Gateway;
         SelectInterval(_config.Settings.IntervalSeconds);
+        _loadingSettings = true;
+        ThemeLight.IsChecked = ThemeService.Current == ThemeService.Light;
+        ThemeDark.IsChecked = ThemeService.Current == ThemeService.Dark;
+        _loadingSettings = false;
+    }
+
+    private void ThemeChanged(object sender, RoutedEventArgs e)
+    {
+        if (_loadingSettings)
+            return;
+
+        var theme = ThemeLight.IsChecked == true ? ThemeService.Light : ThemeService.Dark;
+        if (_config.Settings.Theme == theme)
+            return;
+
+        _config.Settings.Theme = theme;
+        ThemeService.Apply(theme);
+        ApplyBackdrop();
+        SaveConfig();
+        AddLog(new LogEntry(DateTime.Now, "信息",
+            $"外观已切换为{(theme == ThemeService.Light ? "浅色" : "深色")}"));
+    }
+
+    /// <summary>按当前主题装载壁纸。用 OnLoad 同步解码，玻璃才不会取到上一张图。</summary>
+    private void ApplyBackdrop()
+    {
+        var name = ThemeService.Current == ThemeService.Light ? "backdrop-light.jpg" : "backdrop-dark.jpg";
+        try
+        {
+            var bitmap = new BitmapImage();
+            bitmap.BeginInit();
+            bitmap.CacheOption = BitmapCacheOption.OnLoad;
+            bitmap.UriSource = new Uri($"pack://application:,,,/Assets/{name}", UriKind.Absolute);
+            bitmap.EndInit();
+            bitmap.Freeze();
+            BackdropImage.Source = bitmap;
+        }
+        catch (IOException)
+        {
+            // 壁纸丢了就退回纯色，界面仍然可用
+        }
+
+        Controls.GlassPanel.InvalidateBackdrop();
     }
 
     private void SelectInterval(int seconds)
@@ -572,16 +645,14 @@ public partial class MainWindow : Window
         if (_hotspotBusy)
             return;
         _hotspotBusy = true;
-        HotspotStatus.Foreground = new SolidColorBrush(Color.FromRgb(107, 114, 128));
+        HotspotStatus.Foreground = new SolidColorBrush(Color.FromRgb(0x6C, 0x7A, 0x93));
         HotspotStatus.Text = _hotspotOn ? "正在关闭热点…" : "正在开启热点…";
         try
         {
             var result = _hotspotOn
                 ? await HotspotService.TurnOffAsync()
                 : await HotspotService.EnsureOnAsync();
-            HotspotStatus.Foreground = new SolidColorBrush(result.Success
-                ? Color.FromRgb(14, 159, 110)
-                : Color.FromRgb(220, 38, 38));
+            HotspotStatus.Foreground = new SolidColorBrush(result.Success ? OnlineColor : ErrorColor);
             HotspotStatus.Text = result.Message;
             AddLog(new LogEntry(DateTime.Now, result.Success ? "信息" : "警告", result.Message));
         }
@@ -652,4 +723,27 @@ public partial class MainWindow : Window
     }
 
     private static string TrimTrayText(string text) => text.Length <= 63 ? text : text[..63];
+
+    private void UpdateLogFooter() =>
+        LogsFooter.Text = $"网关 {_config.Settings.Gateway} · 每 {_config.Settings.IntervalSeconds} 秒检测 · 共 {_logs.Count} 条记录";
+
+    private static Brush Freeze(Color color)
+    {
+        var brush = new SolidColorBrush(color);
+        brush.Freeze();
+        return brush;
+    }
+
+    /// <summary>状态卡的辉光随状态平滑变色，避免硬切。</summary>
+    private void AnimateGlow(Color target)
+    {
+        if (StatusCard.Glow.Equals(target))
+            return;
+
+        StatusCard.BeginAnimation(Controls.GlassPanel.GlowProperty,
+            new ColorAnimation(target, TimeSpan.FromMilliseconds(520))
+            {
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+            });
+    }
 }

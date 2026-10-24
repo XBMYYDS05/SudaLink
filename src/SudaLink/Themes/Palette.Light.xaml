@@ -1,0 +1,99 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- ===== 浅色面板：Daylight（白玻璃浮在淡彩背景上） ===== -->
+
+    <!-- 文字 -->
+    <SolidColorBrush x:Key="Ink" Color="#0F1319"/>
+    <SolidColorBrush x:Key="InkSoft" Color="#262D37"/>
+    <SolidColorBrush x:Key="Sub" Color="#444D5B"/>
+    <SolidColorBrush x:Key="Muted" Color="#5C6675"/>
+
+    <!-- 品牌 -->
+    <SolidColorBrush x:Key="Accent" Color="#C8203A"/>
+    <SolidColorBrush x:Key="AccentDeep" Color="#9E1730"/>
+    <SolidColorBrush x:Key="AccentSoft" Color="#C8203A"/>
+    <SolidColorBrush x:Key="SelFill" Color="#3BFFFFFF"/>
+    <SolidColorBrush x:Key="SelEdge" Color="#59C8203A"/>
+    <SolidColorBrush x:Key="TabFillA" Color="#B8FFFFFF"/>
+    <Color x:Key="TabFillAColor">#B8FFFFFF</Color>
+    <SolidColorBrush x:Key="TabFillB" Color="#A6FFFFFF"/>
+    <Color x:Key="TabFillBColor">#A6FFFFFF</Color>
+    <SolidColorBrush x:Key="TabEdge" Color="#F2FFFFFF"/>
+
+    <!-- 语义 -->
+    <SolidColorBrush x:Key="Success" Color="#0E9F6E"/>
+    <SolidColorBrush x:Key="SuccessText" Color="#0A7F58"/>
+    <SolidColorBrush x:Key="SuccessFill" Color="#1F0E9F6E"/>
+    <SolidColorBrush x:Key="SuccessEdge" Color="#4D0E9F6E"/>
+    <SolidColorBrush x:Key="Danger" Color="#C42B3D"/>
+    <SolidColorBrush x:Key="DangerText" Color="#B0273A"/>
+    <SolidColorBrush x:Key="DangerFill" Color="#1FC42B3D"/>
+    <SolidColorBrush x:Key="DangerEdge" Color="#4DC42B3D"/>
+    <SolidColorBrush x:Key="Warn" Color="#B86A10"/>
+
+    <!-- 玻璃 -->
+    <SolidColorBrush x:Key="GlassStrong" Color="#24FFFFFF"/>
+    <SolidColorBrush x:Key="GlassMedium" Color="#33FFFFFF"/>
+    <SolidColorBrush x:Key="GlassSoft" Color="#17FFFFFF"/>
+    <Color x:Key="GlassTopA">#38FFFFFF</Color>
+    <Color x:Key="GlassTopB">#1AFFFFFF</Color>
+    <Color x:Key="GlassTopC">#08FFFFFF</Color>
+    <Color x:Key="GlassBottom">#12000000</Color>
+    <LinearGradientBrush x:Key="Edge" StartPoint="0,0" EndPoint="0.9,1">
+        <GradientStop Color="#FFFFFFFF" Offset="0"/>
+        <GradientStop Color="#C4FFFFFF" Offset="0.4"/>
+        <GradientStop Color="#4DFFFFFF" Offset="0.74"/>
+        <GradientStop Color="#380A1424" Offset="1"/>
+    </LinearGradientBrush>
+    <DropShadowEffect x:Key="PanelShadow" BlurRadius="26" ShadowDepth="6" Direction="270"
+                      Color="#12203A" Opacity="0.22"/>
+    <DropShadowEffect x:Key="TabShadow" BlurRadius="12" ShadowDepth="2" Direction="270"
+                      Color="#12203A" Opacity="0.16"/>
+    <DropShadowEffect x:Key="FloatShadow" BlurRadius="34" ShadowDepth="12" Direction="270"
+                      Color="#12203A" Opacity="0.26"/>
+
+    <Color x:Key="SpecularCore">#4DFFFFFF</Color>
+    <Color x:Key="SpecularMid">#14FFFFFF</Color>
+    <Color x:Key="RimInnerA">#59FFFFFF</Color>
+    <Color x:Key="RimInnerB">#1F0A1424</Color>
+    <Color x:Key="TopLineA">#B3FFFFFF</Color>
+    <Color x:Key="TopLineB">#FFFFFFFF</Color>
+    <SolidColorBrush x:Key="PrimaryEdge" Color="#66FFFFFF"/>
+    <Color x:Key="PrimaryGloss">#73FFFFFF</Color>
+
+    <!-- 控件表面 -->
+    <SolidColorBrush x:Key="SurfaceSoft" Color="#38FFFFFF"/>
+    <SolidColorBrush x:Key="LineSoft" Color="#1F0B1A33"/>
+    <SolidColorBrush x:Key="BandFill" Color="#2BFFFFFF"/>
+    <SolidColorBrush x:Key="HoverWhite" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="CaptionHover" Color="#14000000"/>
+    <SolidColorBrush x:Key="CloseHover" Color="#D93A4B"/>
+    <SolidColorBrush x:Key="ScrollThumb" Color="#24000000"/>
+    <SolidColorBrush x:Key="ScrollThumbHot" Color="#4A000000"/>
+    <Color x:Key="PrimaryA">#E03048</Color>
+    <Color x:Key="PrimaryB">#A8162C</Color>
+    <Color x:Key="SwitchA">#E03048</Color>
+    <Color x:Key="SwitchB">#A8162C</Color>
+    <SolidColorBrush x:Key="SwitchTrack" Color="#26000000"/>
+
+    <!-- 背景（Color 供 GradientStop，WindowBase 供窗口兜底） -->
+    <SolidColorBrush x:Key="WindowBase" Color="#F8F9FD"/>
+    <Color x:Key="BgBase1">#F8F9FD</Color>
+    <Color x:Key="BgBase2">#EEF1FA</Color>
+    <Color x:Key="BgBase3">#FDF4F6</Color>
+    <Color x:Key="AuroraBlue">#8CA8C4FF</Color>
+    <Color x:Key="AuroraBlueMid">#3DA0B8F2</Color>
+    <Color x:Key="AuroraRose">#7AFFC4D2</Color>
+    <Color x:Key="AuroraRoseMid">#33F7AFC0</Color>
+    <Color x:Key="AuroraViolet">#6BD9C8FF</Color>
+    <Color x:Key="AuroraVioletMid">#2EB9A4F5</Color>
+    <Color x:Key="AuroraMint">#5FBFEBDD</Color>
+    <Color x:Key="AuroraMintMid">#24A3DECF</Color>
+    <Color x:Key="GrainTint">#000000</Color>
+
+    <!-- 玻璃底衬（壁纸）：必须有结构，玻璃才“透”得出来 -->
+    <ImageBrush x:Key="BackdropBrush" ImageSource="pack://application:,,,/Assets/backdrop-light.jpg"
+                Stretch="UniformToFill"/>
+    <SolidColorBrush x:Key="BackdropVeil" Color="#00FFFFFF"/>
+</ResourceDictionary>

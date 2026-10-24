@@ -90,6 +90,9 @@ public sealed class AppSettings
     public int IntervalSeconds { get; set; } = 10;
     public string Gateway { get; set; } = "10.9.1.3";
 
+    /// <summary>外观主题：Dark / Light。</summary>
+    public string Theme { get; set; } = "Light";
+
     public AppSettings Clone() => (AppSettings)MemberwiseClone();
 }
 

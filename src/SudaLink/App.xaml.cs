@@ -61,11 +61,41 @@ public partial class App : Application
             }
         }
 
-        MainWindow = new MainWindow(config, store, warning)
+        var forcedTheme = Environment.GetCommandLineArgs()
+            .FirstOrDefault(a => a.StartsWith("--theme=", StringComparison.OrdinalIgnoreCase))?[8..];
+        if (!string.IsNullOrWhiteSpace(forcedTheme))
+        {
+            config.Settings.Theme = string.Equals(forcedTheme, "light", StringComparison.OrdinalIgnoreCase)
+                ? ThemeService.Light
+                : ThemeService.Dark;
+        }
+
+        ThemeService.Apply(config.Settings.Theme);
+
+        var window = new MainWindow(config, store, warning)
         {
             StartInTray = e.Args.Contains("--background", StringComparer.OrdinalIgnoreCase)
         };
-        MainWindow.Show();
+        MainWindow = window;
+        window.Show();
+
+        // 开发用：--render=<目录> 把三个页面渲染成 PNG 后退出（截图 / 文档用）
+        var renderDir = e.Args.FirstOrDefault(a =>
+            a.StartsWith("--render=", StringComparison.OrdinalIgnoreCase))?[9..];
+        if (!string.IsNullOrWhiteSpace(renderDir))
+            _ = RenderAndExitAsync(window, renderDir);
+    }
+
+    private async Task RenderAndExitAsync(MainWindow window, string directory)
+    {
+        try
+        {
+            await window.RenderSnapshotsAsync(directory);
+        }
+        finally
+        {
+            Shutdown();
+        }
     }
 
     private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
