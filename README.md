@@ -102,6 +102,7 @@ python tools/gen_wallpaper.py src/SudaLink/Assets
 | `--page=overview\|accounts\|settings` | 直接打开指定页 |
 | `--theme=light\|dark` | 临时覆盖主题，不写回配置（截图用） |
 | `--render=<目录>` | 把三个页面渲染成 PNG 后退出（文档截图用） |
+| `--render-wait=<秒>` | 配合 `--render`：先跑一段时间再截图，用来观察真实运行后的日志 |
 
 ---
 
@@ -141,11 +142,21 @@ POST http://10.9.1.3:801/eportal/?c=ACSetting&a=Login
 运营商后缀：校园网 / 移动 @zgyd / 联通 @cucc / 电信 @ctc
 ```
 
+**注意返回 302 是正常的。** 认证被受理后网关会跳到结果页：
+
+```
+302 → /2.htm?...&RetCode=2&ErrorMsg=Mg%3D%3D   # base64("2")，通常表示本机已在线
+```
+
+`RetCode` 不是"失败码"，302 也不是错误 —— 这类响应的正文往往是空的，
+所以判定成败必须靠"到底能不能上网"，而不是看 HTTP 状态码。
+（4.1.0 就是踩了这个坑，详见 [docs/versions/v4.1.md](docs/versions/v4.1.md)。）
+
 ---
 
 ## 版本记录
 
-从 2.0 重写到 4.0，一共 9 个版本，每一次的动机、实现和踩坑都在
+从 2.0 重写到 4.1，一共 10 个版本，每一次的动机、实现和踩坑都在
 [`docs/versions/`](docs/versions/) 里，索引见 [CHANGELOG.md](CHANGELOG.md)。
 
 ---

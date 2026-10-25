@@ -5,6 +5,7 @@ var tests = new (string Name, Action Run)[]
     ("旧配置迁移与密码加密", TestLegacyMigration),
     ("网关成功响应解析", TestSuccessResponses),
     ("网关失败响应解析", TestFailureResponses),
+    ("网关 302 跳转判定", TestRedirectEvaluation),
     ("当前账号优先顺序", TestAccountOrdering),
     ("私有网关地址校验", TestGatewayValidation),
     ("运营商后缀与显示", TestCarriers)
@@ -70,6 +71,29 @@ static void TestFailureResponses()
     Assert(PortalAuthenticator.ParseLoginResponse("dr1003({\"result\":0,\"msg\":\"账号欠费\"})").Message.Contains("欠费"), "欠费提示不准确");
     Assert(PortalAuthenticator.ParseLoginResponse("Dr.COMWebLoginID_3=0;Msg=05;").Message.Contains("密码"), "Msg 错误码未映射");
     Assert(!PortalAuthenticator.ParseLoginResponse(string.Empty).Success, "空响应不应成功");
+}
+
+static void TestRedirectEvaluation()
+{
+    // Dr.COM 认证通过（或本机已在线）时会 302 到结果页，正文为空 —— 这不能算失败
+    Assert(PortalAuthenticator.EvaluateLoginResponse(302, string.Empty, internetReachable: true).Success,
+        "302 + 能上网 应判定成功");
+
+    var offline = PortalAuthenticator.EvaluateLoginResponse(302, string.Empty, internetReachable: false);
+    Assert(!offline.Success && offline.Message.Contains("跳转"), "302 + 不能上网 应明确提示跳转后未放行");
+
+    Assert(PortalAuthenticator.EvaluateLoginResponse(200, "dr1003({\"result\":1})", false).Success,
+        "成功正文即使未联网也应判定成功");
+
+    var serverError = PortalAuthenticator.EvaluateLoginResponse(500, string.Empty, false);
+    Assert(!serverError.Success && serverError.Message.Contains("500"), "5xx 应提示具体状态码");
+
+    var wrongPassword = PortalAuthenticator.EvaluateLoginResponse(200, "password error", false);
+    Assert(!wrongPassword.Success && wrongPassword.Message.Contains("密码"), "普通失败应保留具体原因");
+
+    // 网关用 RetCode=2 表达"本机已在线"，但若实际仍上不了网，提示要说得更准
+    var alreadyOnline = PortalAuthenticator.EvaluateLoginResponse(302, string.Empty, false, retCode: 2);
+    Assert(!alreadyOnline.Success && alreadyOnline.Message.Contains("已在线"), "RetCode=2 应提示本机已在线");
 }
 
 static void TestAccountOrdering()
