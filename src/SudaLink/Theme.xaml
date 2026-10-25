@@ -69,8 +69,8 @@
                 <ControlTemplate TargetType="{x:Type controls:GlassPanel}">
                     <Border CornerRadius="{TemplateBinding CornerRadius}"
                             Effect="{TemplateBinding Shadow}">
-                        <Border CornerRadius="{TemplateBinding CornerRadius}" ClipToBounds="True">
-                            <Grid>
+                        <Border CornerRadius="{TemplateBinding CornerRadius}">
+                            <Grid x:Name="PART_Root">
                                 <!-- 磨砂层：背景位图裁一块、高斯模糊 -->
                                 <Border x:Name="PART_Frost"/>
 
