@@ -46,12 +46,12 @@
         <GradientStop Color="#4DFFFFFF" Offset="0.74"/>
         <GradientStop Color="#380A1424" Offset="1"/>
     </LinearGradientBrush>
-    <DropShadowEffect x:Key="PanelShadow" BlurRadius="26" ShadowDepth="6" Direction="270"
-                      Color="#12203A" Opacity="0.22"/>
+    <DropShadowEffect x:Key="PanelShadow" BlurRadius="18" ShadowDepth="3" Direction="270"
+                      Color="#0B1220" Opacity="0.14"/>
     <DropShadowEffect x:Key="TabShadow" BlurRadius="12" ShadowDepth="2" Direction="270"
-                      Color="#12203A" Opacity="0.16"/>
-    <DropShadowEffect x:Key="FloatShadow" BlurRadius="34" ShadowDepth="12" Direction="270"
-                      Color="#12203A" Opacity="0.26"/>
+                      Color="#0B1220" Opacity="0.12"/>
+    <DropShadowEffect x:Key="FloatShadow" BlurRadius="26" ShadowDepth="8" Direction="270"
+                      Color="#0B1220" Opacity="0.18"/>
 
     <Color x:Key="SpecularCore">#4DFFFFFF</Color>
     <Color x:Key="SpecularMid">#14FFFFFF</Color>

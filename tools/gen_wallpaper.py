@@ -61,9 +61,7 @@ def build(style: str, dark: bool) -> Image.Image:
         img = ramp(stops, yn)
         img = blend(img, hx("#5D7FC4" if dark else "#FFFFFF"),
                     0.16 * blob(xn, yn, 0.22, 0.02, 0.60, 0.34))
-        # 只有极淡的一抹冷色压在左下角，让玻璃有东西可透，但不形成任何形状
-        img = blend(img, hx("#16223F" if dark else "#BCCFE8"),
-                    0.12 * blob(xn, yn, 0.02, 0.94, 0.70, 0.40))
+        # 不再在左下角压冷色 —— 它会从卡片间隙透出来，被误认成脏阴影
         grain = 0.005 if not dark else 0.008
 
     elif style == "mist":
