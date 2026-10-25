@@ -265,7 +265,7 @@
                                             HorizontalAlignment="Right" Click="NewAccount"/>
                                 </Grid>
                                 <ListBox x:Name="AccountsList" Grid.Row="1" Background="Transparent"
-                                         BorderThickness="0" MaxHeight="80" Margin="0,0,2,0"
+                                         BorderThickness="0" MaxHeight="134" Margin="0,0,2,0"
                                          ItemContainerStyle="{StaticResource Row}"
                                          SelectionChanged="AccountSelected"
                                          ScrollViewer.HorizontalScrollBarVisibility="Disabled">
@@ -480,7 +480,7 @@
                         </controls:GlassPanel>
 
                         <Grid Margin="6,12,4,0">
-                            <TextBlock Text="设置修改后立即生效并自动保存 · v4.3" FontSize="9.5"
+                            <TextBlock Text="设置修改后立即生效并自动保存 · v4.4" FontSize="9.5"
                                        Foreground="{DynamicResource Muted}" VerticalAlignment="Center"/>
                             <TextBlock Text="溪边木" FontSize="9.5" Foreground="{DynamicResource Muted}"
                                        HorizontalAlignment="Right" VerticalAlignment="Center"

@@ -43,7 +43,7 @@ public class GlassPanel : ContentControl
     /// <summary>高斯模糊半径。0 表示关闭（回落为纯半透明面板）。</summary>
     public static readonly DependencyProperty BlurProperty = DependencyProperty.Register(
         nameof(Blur), typeof(double), typeof(GlassPanel),
-        new PropertyMetadata(10.0, (d, _) =>
+        new PropertyMetadata(14.0, (d, _) =>
         {
             var panel = (GlassPanel)d;
             panel.ApplyBlur();

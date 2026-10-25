@@ -248,13 +248,31 @@ public partial class MainWindow : Window
             RTB_DPI * scale, RTB_DPI * scale, PixelFormats.Pbgra32);
         bitmap.Render(root);
 
+        // 真机窗口由 DWM 圆角（8 逻辑像素），截图也裁出同样的圆角，别让文档里的窗口是方的
+        var visual = new DrawingVisual();
+        using (var dc = visual.RenderOpen())
+        {
+            var rect = new Rect(0, 0, bitmap.Width, bitmap.Height);
+            dc.PushClip(new RectangleGeometry(rect, WindowCornerRadius * scale, WindowCornerRadius * scale));
+            dc.DrawImage(bitmap, rect);
+            dc.Pop();
+        }
+
+        var rounded = new RenderTargetBitmap(
+            bitmap.PixelWidth, bitmap.PixelHeight,
+            RTB_DPI * scale, RTB_DPI * scale, PixelFormats.Pbgra32);
+        rounded.Render(visual);
+
         var encoder = new PngBitmapEncoder();
-        encoder.Frames.Add(BitmapFrame.Create(bitmap));
+        encoder.Frames.Add(BitmapFrame.Create(rounded));
         using var stream = File.Create(path);
         encoder.Save(stream);
     }
 
     private const double RTB_DPI = 96;
+
+    /// <summary>窗口四角的圆角半径（与 Windows 11 DWM 圆角一致）。</summary>
+    private const double WindowCornerRadius = 8.0;
 
     /// <summary>页面切换：淡入并轻微上浮，避免生硬跳转。</summary>
     private void AnimateIn(FrameworkElement element)

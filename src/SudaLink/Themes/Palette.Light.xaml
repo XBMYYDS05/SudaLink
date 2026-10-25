@@ -13,7 +13,7 @@
     <SolidColorBrush x:Key="Accent" Color="#C8203A"/>
     <SolidColorBrush x:Key="AccentDeep" Color="#9E1730"/>
     <SolidColorBrush x:Key="AccentSoft" Color="#C8203A"/>
-    <SolidColorBrush x:Key="SelFill" Color="#3BFFFFFF"/>
+    <SolidColorBrush x:Key="SelFill" Color="#52FFFFFF"/>
     <SolidColorBrush x:Key="SelEdge" Color="#59C8203A"/>
     <SolidColorBrush x:Key="TabFillA" Color="#B8FFFFFF"/>
     <Color x:Key="TabFillAColor">#B8FFFFFF</Color>
@@ -32,13 +32,13 @@
     <SolidColorBrush x:Key="DangerEdge" Color="#4DC42B3D"/>
     <SolidColorBrush x:Key="Warn" Color="#B86A10"/>
 
-    <!-- 玻璃 -->
-    <SolidColorBrush x:Key="GlassStrong" Color="#24FFFFFF"/>
-    <SolidColorBrush x:Key="GlassMedium" Color="#33FFFFFF"/>
-    <SolidColorBrush x:Key="GlassSoft" Color="#17FFFFFF"/>
-    <Color x:Key="GlassTopA">#38FFFFFF</Color>
-    <Color x:Key="GlassTopB">#1AFFFFFF</Color>
-    <Color x:Key="GlassTopC">#08FFFFFF</Color>
+    <!-- 玻璃：面板整体比背景亮一档，配合投影才能从高对比底色上"浮"起来 -->
+    <SolidColorBrush x:Key="GlassStrong" Color="#47FFFFFF"/>
+    <SolidColorBrush x:Key="GlassMedium" Color="#52FFFFFF"/>
+    <SolidColorBrush x:Key="GlassSoft" Color="#2EFFFFFF"/>
+    <Color x:Key="GlassTopA">#52FFFFFF</Color>
+    <Color x:Key="GlassTopB">#26FFFFFF</Color>
+    <Color x:Key="GlassTopC">#10FFFFFF</Color>
     <Color x:Key="GlassBottom">#12000000</Color>
     <LinearGradientBrush x:Key="Edge" StartPoint="0,0" EndPoint="0.9,1">
         <GradientStop Color="#FFFFFFFF" Offset="0"/>
@@ -46,12 +46,12 @@
         <GradientStop Color="#4DFFFFFF" Offset="0.74"/>
         <GradientStop Color="#380A1424" Offset="1"/>
     </LinearGradientBrush>
-    <DropShadowEffect x:Key="PanelShadow" BlurRadius="18" ShadowDepth="3" Direction="270"
-                      Color="#0B1220" Opacity="0.14"/>
-    <DropShadowEffect x:Key="TabShadow" BlurRadius="12" ShadowDepth="2" Direction="270"
-                      Color="#0B1220" Opacity="0.12"/>
-    <DropShadowEffect x:Key="FloatShadow" BlurRadius="26" ShadowDepth="8" Direction="270"
-                      Color="#0B1220" Opacity="0.18"/>
+    <DropShadowEffect x:Key="PanelShadow" BlurRadius="20" ShadowDepth="4" Direction="270"
+                      Color="#14274E" Opacity="0.24"/>
+    <DropShadowEffect x:Key="TabShadow" BlurRadius="14" ShadowDepth="3" Direction="270"
+                      Color="#14274E" Opacity="0.18"/>
+    <DropShadowEffect x:Key="FloatShadow" BlurRadius="28" ShadowDepth="9" Direction="270"
+                      Color="#14274E" Opacity="0.26"/>
 
     <Color x:Key="SpecularCore">#4DFFFFFF</Color>
     <Color x:Key="SpecularMid">#14FFFFFF</Color>
@@ -63,9 +63,9 @@
     <Color x:Key="PrimaryGloss">#73FFFFFF</Color>
 
     <!-- 控件表面 -->
-    <SolidColorBrush x:Key="SurfaceSoft" Color="#38FFFFFF"/>
+    <SolidColorBrush x:Key="SurfaceSoft" Color="#4DFFFFFF"/>
     <SolidColorBrush x:Key="LineSoft" Color="#1F0B1A33"/>
-    <SolidColorBrush x:Key="BandFill" Color="#2BFFFFFF"/>
+    <SolidColorBrush x:Key="BandFill" Color="#40FFFFFF"/>
     <SolidColorBrush x:Key="HoverWhite" Color="#FFFFFF"/>
     <SolidColorBrush x:Key="CaptionHover" Color="#14000000"/>
     <SolidColorBrush x:Key="CloseHover" Color="#D93A4B"/>
@@ -78,7 +78,7 @@
     <SolidColorBrush x:Key="SwitchTrack" Color="#26000000"/>
 
     <!-- 背景（Color 供 GradientStop，WindowBase 供窗口兜底） -->
-    <SolidColorBrush x:Key="WindowBase" Color="#F8F9FD"/>
+    <SolidColorBrush x:Key="WindowBase" Color="#7E93E2"/>
     <Color x:Key="BgBase1">#F8F9FD</Color>
     <Color x:Key="BgBase2">#EEF1FA</Color>
     <Color x:Key="BgBase3">#FDF4F6</Color>
