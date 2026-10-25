@@ -24,7 +24,8 @@ public class GlassPanel : ContentControl
     private static readonly double[] GlowOffsets = { 0.0, 0.45, 1.0 };
 
     public static readonly DependencyProperty CornerRadiusProperty = DependencyProperty.Register(
-        nameof(CornerRadius), typeof(CornerRadius), typeof(GlassPanel), new PropertyMetadata(new CornerRadius(22)));
+        nameof(CornerRadius), typeof(CornerRadius), typeof(GlassPanel),
+        new PropertyMetadata(new CornerRadius(22), (d, _) => ((GlassPanel)d).ApplyClip()));
 
     public static readonly DependencyProperty FillProperty = DependencyProperty.Register(
         nameof(Fill), typeof(Brush), typeof(GlassPanel), new PropertyMetadata(DefaultFill));
@@ -63,6 +64,7 @@ public class GlassPanel : ContentControl
         nameof(Glow), typeof(Color), typeof(GlassPanel),
         new PropertyMetadata(Colors.Transparent, (d, e) => ((GlassPanel)d).ApplyGlow((Color)e.NewValue)));
 
+    private Grid? _root;
     private Border? _frost;
     private ImageBrush? _frostBrush;
     private Rect? _frostViewbox;
@@ -138,12 +140,14 @@ public class GlassPanel : ContentControl
     {
         base.OnApplyTemplate();
 
+        _root = GetTemplateChild("PART_Root") as Grid;
         _frost = GetTemplateChild("PART_Frost") as Border;
         _specular = GetTemplateChild("PART_Specular") as FrameworkElement;
         _shift = GetTemplateChild("PART_SpecularShift") as TranslateTransform;
         _glow = GetTemplateChild("PART_Glow") as Ellipse;
 
         ApplyBlur();
+        ApplyClip();
         UpdateFrost(force: true);
         BuildGlow();
 
@@ -258,6 +262,20 @@ public class GlassPanel : ContentControl
         _frostViewbox = rect;
     }
 
+    /// <summary>
+    /// 真正的圆角裁剪。Border.CornerRadius + ClipToBounds 只按矩形裁，
+    /// 磨砂层会在圆角外露出方角，只剩一道圆角描边，所以必须用几何 Clip。
+    /// </summary>
+    private void ApplyClip()
+    {
+        if (_root is null || ActualWidth <= 0 || ActualHeight <= 0)
+            return;
+
+        var radius = Math.Min(CornerRadius.TopLeft, Math.Min(ActualWidth, ActualHeight) / 2);
+        _root.Clip = new RectangleGeometry(
+            new Rect(0, 0, ActualWidth, ActualHeight), radius, radius);
+    }
+
     private bool FrostDisabled() =>
         Backdrop is null || Blur <= 0 || ActualWidth < 1 || ActualHeight < 1 || !IsVisible;
 
@@ -291,6 +309,7 @@ public class GlassPanel : ContentControl
     protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo)
     {
         base.OnRenderSizeChanged(sizeInfo);
+        ApplyClip();
         UpdateFrost(force: true);
 
         if (!_placed)
