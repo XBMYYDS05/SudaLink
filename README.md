@@ -91,14 +91,15 @@ dotnet run --project tests/SudaLink.Tests/SudaLink.Tests.csproj
 
 ```bash
 pip install numpy pillow
-python tools/gen_wallpaper.py src/SudaLink/Assets        # 默认 plain（极简）
+python tools/gen_wallpaper.py src/SudaLink/Assets        # 默认 aura（高对比光场）
 ```
 
 五种风格可一键整套重出（浅色 + 深色），换完重新编译即可：
 
 | 风格 | 特征 |
 | --- | --- |
-| `plain` | 极简：近白到极浅蓝灰的纵向渐变，无线条无花纹（默认） |
+| `aura` | 高对比光场：饱和底色 + 大光斑，玻璃最明显（默认） |
+| `plain` | 极简：近白到极浅蓝灰的纵向渐变，无线条无花纹 |
 | `mist` | 雾面：只有大尺度柔和色块 |
 | `bloom` | 光晕：中间亮、四周沉，层次最强 |
 | `solid` | 色阶：接近纯色的纵向色阶 |
@@ -172,7 +173,7 @@ POST http://10.9.1.3:801/eportal/?c=ACSetting&a=Login
 
 ## 版本记录
 
-从 2.0 重写到 4.3，一共 12 个版本，每一次的动机、实现和踩坑都在
+从 2.0 重写到 4.4，一共 13 个版本，每一次的动机、实现和踩坑都在
 [`docs/versions/`](docs/versions/) 里，索引见 [CHANGELOG.md](CHANGELOG.md)。
 
 ---
