@@ -64,7 +64,6 @@ public class GlassPanel : ContentControl
         new PropertyMetadata(Colors.Transparent, (d, e) => ((GlassPanel)d).ApplyGlow((Color)e.NewValue)));
 
     private Border? _frost;
-    private Grid? _clipHost;
     private ImageBrush? _frostBrush;
     private Rect? _frostViewbox;
     private FrameworkElement? _specular;
@@ -140,13 +139,11 @@ public class GlassPanel : ContentControl
         base.OnApplyTemplate();
 
         _frost = GetTemplateChild("PART_Frost") as Border;
-        _clipHost = GetTemplateChild("PART_Clip") as Grid;
         _specular = GetTemplateChild("PART_Specular") as FrameworkElement;
         _shift = GetTemplateChild("PART_SpecularShift") as TranslateTransform;
         _glow = GetTemplateChild("PART_Glow") as Ellipse;
 
         ApplyBlur();
-        ApplyClip();
         UpdateFrost(force: true);
         BuildGlow();
 
@@ -186,16 +183,6 @@ public class GlassPanel : ContentControl
                 KernelType = KernelType.Gaussian,
                 RenderingBias = RenderingBias.Performance
             };
-    }
-
-    private void ApplyClip()
-    {
-        if (_clipHost is null || ActualWidth <= 0 || ActualHeight <= 0)
-            return;
-
-        var radius = Math.Min(CornerRadius.TopLeft, Math.Min(ActualWidth, ActualHeight) / 2);
-        _clipHost.Clip = new RectangleGeometry(
-            new Rect(0, 0, ActualWidth, ActualHeight), radius, radius);
     }
 
     /// <summary>按自身在背景中的位置裁取背景位图，得到 1:1 的“透过玻璃”画面。</summary>
@@ -304,7 +291,6 @@ public class GlassPanel : ContentControl
     protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo)
     {
         base.OnRenderSizeChanged(sizeInfo);
-        ApplyClip();
         UpdateFrost(force: true);
 
         if (!_placed)
