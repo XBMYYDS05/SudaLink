@@ -265,10 +265,11 @@
                                             HorizontalAlignment="Right" Click="NewAccount"/>
                                 </Grid>
                                 <ListBox x:Name="AccountsList" Grid.Row="1" Background="Transparent"
-                                         BorderThickness="0" MaxHeight="134" Margin="0,0,2,0"
+                                         BorderThickness="0" Margin="0,0,2,0"
                                          ItemContainerStyle="{StaticResource Row}"
                                          SelectionChanged="AccountSelected"
-                                         ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                         ScrollViewer.VerticalScrollBarVisibility="Disabled">
                                     <ListBox.ItemTemplate>
                                         <DataTemplate>
                                             <Grid>
