@@ -9,9 +9,9 @@
     <UseWindowsForms>true</UseWindowsForms>
     <AssemblyName>SudaLink</AssemblyName>
     <RootNamespace>SudaLink</RootNamespace>
-    <Version>4.0.0</Version>
-    <AssemblyVersion>4.0.0.0</AssemblyVersion>
-    <FileVersion>4.0.0.0</FileVersion>
+    <Version>4.1.0</Version>
+    <AssemblyVersion>4.1.0.0</AssemblyVersion>
+    <FileVersion>4.1.0.0</FileVersion>
     <Product>SudaLink</Product>
     <Description>苏大校园网自动登录助手</Description>
     <ApplicationIcon>Assets\App.ico</ApplicationIcon>
@@ -30,6 +30,8 @@
     <Using Remove="System.Drawing" />
     <Using Remove="System.Windows.Forms" />
     <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />
+    <!-- 网关的结果页是 GBK/GB2312，.NET 默认只带 UTF-8，不注册代码页会直接抛异常 -->
+    <PackageReference Include="System.Text.Encoding.CodePages" Version="8.0.0" />
     <Resource Include="Assets\suda-logo.png" />
     <Resource Include="Assets\grain.png" />
     <Resource Include="Assets\backdrop-light.jpg" />

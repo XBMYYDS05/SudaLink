@@ -80,17 +80,23 @@ public partial class App : Application
         window.Show();
 
         // 开发用：--render=<目录> 把三个页面渲染成 PNG 后退出（截图 / 文档用）
+        // 可选 --render-wait=<秒>：先跑一段时间再渲染，用来观察实际运行后的日志与状态
         var renderDir = e.Args.FirstOrDefault(a =>
             a.StartsWith("--render=", StringComparison.OrdinalIgnoreCase))?[9..];
         if (!string.IsNullOrWhiteSpace(renderDir))
-            _ = RenderAndExitAsync(window, renderDir);
+        {
+            var wait = e.Args.FirstOrDefault(a =>
+                a.StartsWith("--render-wait=", StringComparison.OrdinalIgnoreCase))?[14..];
+            _ = RenderAndExitAsync(window, renderDir,
+                double.TryParse(wait, out var seconds) ? seconds : 0.9);
+        }
     }
 
-    private async Task RenderAndExitAsync(MainWindow window, string directory)
+    private async Task RenderAndExitAsync(MainWindow window, string directory, double waitSeconds)
     {
         try
         {
-            await window.RenderSnapshotsAsync(directory);
+            await window.RenderSnapshotsAsync(directory, waitSeconds);
         }
         finally
         {

@@ -220,11 +220,11 @@ public partial class MainWindow : Window
     }
 
     /// <summary>开发期截图：把三个页面各渲染一张 PNG（供 <c>--render=</c> 使用）。</summary>
-    public async Task RenderSnapshotsAsync(string directory)
+    public async Task RenderSnapshotsAsync(string directory, double waitSeconds = 0.9)
     {
         Directory.CreateDirectory(directory);
         var suffix = ThemeService.Current == ThemeService.Light ? "light" : "dark";
-        await Task.Delay(900);
+        await Task.Delay(TimeSpan.FromSeconds(Math.Max(waitSeconds, 0.2)));
         foreach (var (page, name) in new[]
                  {
                      ("Overview", "overview"), ("Accounts", "accounts"), ("Settings", "settings")

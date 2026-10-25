@@ -12,6 +12,12 @@ public sealed partial class PortalAuthenticator : IDisposable
     private readonly HttpClient _portalClient;
     private readonly HttpClient _internetClient;
 
+    static PortalAuthenticator()
+    {
+        // Dr.COM 的结果页常见 GB2312/GBK，.NET Core 默认不带这些代码页
+        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+    }
+
     public PortalAuthenticator()
     {
         _portalClient = new HttpClient(new HttpClientHandler
@@ -29,7 +35,8 @@ public sealed partial class PortalAuthenticator : IDisposable
             AutomaticDecompression = DecompressionMethods.All
         })
         {
-            Timeout = TimeSpan.FromSeconds(5)
+            // 探测点并发跑，3.5 秒足够；再长只会在断网时让界面一直卡在"正在认证"
+            Timeout = TimeSpan.FromSeconds(3.5)
         };
         _portalClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("CampusNet", "2.0"));
         _internetClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("CampusNet", "2.0"));
@@ -37,9 +44,42 @@ public sealed partial class PortalAuthenticator : IDisposable
 
     public async Task<bool> CheckInternetAsync(CancellationToken cancellationToken)
     {
-        if (await MatchesAsync(_internetClient, "http://www.msftconnecttest.com/connecttest.txt", "Microsoft Connect Test", cancellationToken))
-            return true;
-        return await MatchesAsync(_internetClient, "http://detectportal.firefox.com/success.txt", "success", cancellationToken);
+        // 多个互相独立的探测点。校园网/运营商对单个探测点做劫持的情况很常见，
+        // 只用一个会出现"明明能上网却一直判定离线"的假阴性。
+        // 并发跑、谁先成功就返回：整体耗时约等于最慢的那个，而不是四个相加。
+        var pending = new List<Task<bool>>
+        {
+            MatchesAsync(_internetClient, "http://www.msftconnecttest.com/connecttest.txt",
+                "Microsoft Connect Test", cancellationToken),
+            NoContentAsync(_internetClient, "http://connect.rom.miui.com/generate_204", cancellationToken),
+            NoContentAsync(_internetClient, "https://connect.rom.miui.com/generate_204", cancellationToken),
+            StatusOkAsync(_internetClient, "https://www.baidu.com/", cancellationToken)
+        };
+
+        while (pending.Count > 0)
+        {
+            var finished = await Task.WhenAny(pending);
+            pending.Remove(finished);
+            if (await finished)
+                return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// 认证刚通过时网关还需要一点时间放行，立刻探测容易拿到"还没通"的结果；
+    /// 但账号密码确实错误时又不该干等，所以重试次数由调用方按"有多不确定"来定。
+    /// </summary>
+    private async Task<bool> WaitForInternetAsync(int attempts, CancellationToken cancellationToken)
+    {
+        for (var index = 0; index < attempts; index++)
+        {
+            if (await CheckInternetAsync(cancellationToken))
+                return true;
+            if (index < attempts - 1)
+                await Task.Delay(700, cancellationToken);
+        }
+        return false;
     }
 
     public async Task<bool> IsGatewayReachableAsync(string gateway, CancellationToken cancellationToken)
@@ -73,6 +113,11 @@ public sealed partial class PortalAuthenticator : IDisposable
             return AuthResult.Fail("无法确定本机校园网 IPv4 地址");
         }
 
+        // 169.254.x.x 是系统自己编的地址：没连上任何 DHCP，认证一定不会成功。
+        // 直接说清楚，比让用户看着"网关返回 HTTP xxx"猜要好。
+        if (localAddress.StartsWith("169.254.", StringComparison.Ordinal))
+            return AuthResult.Fail("本机没有拿到校园网 IP，请断开后重新连接 WiFi");
+
         var values = new Dictionary<string, string>
         {
             ["DDDDD"] = account.Username,
@@ -89,17 +134,24 @@ public sealed partial class PortalAuthenticator : IDisposable
             using var content = new FormUrlEncodedContent(values);
             using var response = await _portalClient.PostAsync(
                 $"http://{gateway}:801/eportal/?c=ACSetting&a=Login", content, cancellationToken);
-            var responseText = await response.Content.ReadAsStringAsync(cancellationToken);
-            var result = ParseLoginResponse(responseText);
-            if (result.Success)
-                return result;
+            var status = (int)response.StatusCode;
+            var responseText = await ReadBodyAsync(response, cancellationToken);
+            var retCode = ReadRetCode(response.Headers.Location);
 
-            if (!response.IsSuccessStatusCode)
-                return AuthResult.Fail($"网关返回 HTTP {(int)response.StatusCode}");
+            // 响应本身能说明问题时先看响应，省掉一次联网探测
+            var parsed = ParseLoginResponse(responseText);
+            if (parsed.Success)
+                return parsed;
 
-            if (await CheckInternetAsync(cancellationToken))
-                return AuthResult.Ok("网关已确认联网");
-            return result;
+            // 3xx 不等于失败：Dr.COM 在认证通过（或本机已在线）时通常 302 到结果页/首页，
+            // 而正文常常是空的。所以凡是"可能是成功"的状态码，一律用真正能不能上网来判定。
+            //   · 3xx / 空正文：最没把握，多试几次（网关放行需要一点时间）
+            //   · 2xx 但有内容却解析不出结论：只试一次，避免密码错误时干等
+            var ambiguous = status is >= 300 and < 400 || string.IsNullOrWhiteSpace(responseText);
+            if (status < 400 && await WaitForInternetAsync(ambiguous ? 3 : 1, cancellationToken))
+                return AuthResult.Ok(status is >= 300 and < 400 ? "网关已跳转，网络已连通" : "网关已确认联网");
+
+            return EvaluateLoginResponse(status, responseText, internetReachable: false, retCode);
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
@@ -108,6 +160,72 @@ public sealed partial class PortalAuthenticator : IDisposable
         catch (HttpRequestException)
         {
             return AuthResult.Fail("无法连接认证网关");
+        }
+        catch (InvalidOperationException)
+        {
+            // 后台循环里不能因为一次奇怪的响应就把守护线程带走
+            return AuthResult.Fail("网关响应无法解析");
+        }
+    }
+
+    /// <summary>
+    /// 把"网关响应 + 是否真的能上网"合成为最终结论。
+    /// 单独抽出来是为了可测：判定逻辑不该只能靠真网关验证。
+    /// </summary>
+    public static AuthResult EvaluateLoginResponse(int statusCode, string body, bool internetReachable,
+        int? retCode = null)
+    {
+        var parsed = ParseLoginResponse(body);
+        if (parsed.Success)
+            return parsed;
+
+        if (internetReachable)
+            return AuthResult.Ok(statusCode is >= 300 and < 400 ? "网关已跳转，网络已连通" : "网关已确认联网");
+
+        if (statusCode >= 400)
+            return AuthResult.Fail($"网关返回 HTTP {statusCode}");
+
+        if (statusCode is >= 300 and < 400)
+            return AuthResult.Fail(retCode switch
+            {
+                2 => "网关说本机已在线，但实际仍然上不了网",
+                null => $"网关跳转（HTTP {statusCode}）后网络仍不可用，可能是运营商侧未放行",
+                _ => $"网关跳转（HTTP {statusCode}，RetCode={retCode}）后网络仍不可用"
+            });
+
+        return parsed;
+    }
+
+    /// <summary>Dr.COM 会把结果码放在跳转地址的查询串里，RetCode=2 通常表示本机已在线。</summary>
+    private static int? ReadRetCode(Uri? location)
+    {
+        if (location is null)
+            return null;
+
+        var match = Regex.Match(location.Query, @"[?&]RetCode=(?<code>\d+)", RegexOptions.IgnoreCase);
+        return match.Success && int.TryParse(match.Groups["code"].Value, out var code) ? code : null;
+    }
+
+    /// <summary>
+    /// 网关的 Content-Type 常带 gb2312 之类 .NET 默认不认识的 charset，
+    /// 直接 ReadAsStringAsync 会抛 InvalidOperationException，所以这里要能兜住。
+    /// </summary>
+    private static async Task<string> ReadBodyAsync(HttpResponseMessage response, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await response.Content.ReadAsStringAsync(cancellationToken);
+        }
+        catch (InvalidOperationException)
+        {
+            var bytes = await response.Content.ReadAsByteArrayAsync(cancellationToken);
+            var charset = response.Content.Headers.ContentType?.CharSet?.Trim('"');
+            if (!string.IsNullOrWhiteSpace(charset))
+            {
+                try { return Encoding.GetEncoding(charset).GetString(bytes); }
+                catch (ArgumentException) { }
+            }
+            return Encoding.UTF8.GetString(bytes);
         }
     }
 
@@ -203,6 +321,40 @@ public sealed partial class PortalAuthenticator : IDisposable
                 return false;
             var body = await response.Content.ReadAsStringAsync(cancellationToken);
             return body.Contains(expected, StringComparison.OrdinalIgnoreCase);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or OperationCanceledException)
+        {
+            return false;
+        }
+    }
+
+    /// <summary>generate_204 类探测点：正常时返回 204 且没有正文。</summary>
+    private static async Task<bool> NoContentAsync(HttpClient client, string url, CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var response = await client.GetAsync(url, cancellationToken);
+            if (response.StatusCode != HttpStatusCode.NoContent && response.StatusCode != HttpStatusCode.OK)
+                return false;
+            var body = await response.Content.ReadAsStringAsync(cancellationToken);
+            return body.Length == 0;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or OperationCanceledException)
+        {
+            return false;
+        }
+    }
+
+    /// <summary>有正文的 200 才算通：被劫持到门户页时通常也是 200，但内容对不上。</summary>
+    private static async Task<bool> StatusOkAsync(HttpClient client, string url, CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var response = await client.GetAsync(url, cancellationToken);
+            if (response.StatusCode != HttpStatusCode.OK)
+                return false;
+            var body = await response.Content.ReadAsStringAsync(cancellationToken);
+            return body.Length > 512;
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or OperationCanceledException)
         {
