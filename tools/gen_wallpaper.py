@@ -71,26 +71,22 @@ def build(style: str, dark: bool) -> Image.Image:
     if style == "aura":
         # 高对比光场：饱和底色 + 大光斑。玻璃的"透"和"磨"都看得见。
         # 浅色主题：periwinkle/azure 中明度底 + 亮白/青/玫瑰光斑，面板提亮后明显浮出。
-        stops = ([(0.00, hx("#0B0F22")), (0.40, hx("#131A3C")), (0.74, hx("#0D122B")), (1.00, hx("#070A18"))]
+        stops = ([(0.00, hx("#0C1324")), (0.40, hx("#111C32")), (0.74, hx("#0D172B")), (1.00, hx("#091221"))]
                  if dark else
-                 [(0.00, hx("#8FA9EE")), (0.30, hx("#7E97E6")), (0.64, hx("#6E84D8")), (1.00, hx("#5C6EC2"))])
+                 [(0.00, hx("#B8C9F2")), (0.30, hx("#A2B8EC")), (0.64, hx("#91A9E2")), (1.00, hx("#819AD6"))])
         img = ramp(stops, yn)
         if dark:
-            img = blend(img, hx("#5FA8FF"), 0.55 * blob(xn, yn, 0.16, 0.06, 0.50, 0.34))
-            img = blend(img, hx("#8C6BFF"), 0.42 * blob(xn, yn, 0.92, 0.30, 0.44, 0.36))
-            img = blend(img, hx("#2FD4C4"), 0.30 * blob(xn, yn, 0.10, 0.86, 0.40, 0.32))
-            img = blend(img, hx("#B8D8FF"), 0.24 * blob(xn, yn, 0.55, 0.42, 0.30, 0.24))
+            img = blend(img, hx("#5FA8FF"), 0.24 * blob(xn, yn, 0.16, 0.06, 0.56, 0.38))
+            img = blend(img, hx("#8C6BFF"), 0.16 * blob(xn, yn, 0.92, 0.30, 0.50, 0.40))
+            img = blend(img, hx("#2FD4C4"), 0.10 * blob(xn, yn, 0.10, 0.86, 0.46, 0.36))
         else:
-            img = blend(img, hx("#F4F8FF"), 0.85 * blob(xn, yn, 0.14, 0.02, 0.52, 0.34))
-            img = blend(img, hx("#BFF0FF"), 0.60 * blob(xn, yn, 0.95, 0.38, 0.40, 0.34))
-            img = blend(img, hx("#F8D9EA"), 0.55 * blob(xn, yn, 0.04, 0.72, 0.36, 0.30))
-            img = blend(img, hx("#43549E"), 0.42 * blob(xn, yn, 0.80, 0.96, 0.44, 0.30))
-            img = blend(img, hx("#CBE6FF"), 0.50 * blob(xn, yn, 0.55, 0.50, 0.26, 0.22))
-        # 柔和明度云纹：20~70px 尺度的无结构起伏（约 ±5%）。
-        # 没有它，光斑尺度都在几百 px，磨砂模糊前后没有差别，玻璃就"死"了。
-        cloud = mottle(20261026, 46, 14) * 0.038 + mottle(20261027, 130, 40) * 0.05
+            img = blend(img, hx("#F4F8FF"), 0.48 * blob(xn, yn, 0.14, 0.02, 0.60, 0.40))
+            img = blend(img, hx("#D5F3FF"), 0.26 * blob(xn, yn, 0.95, 0.38, 0.48, 0.40))
+            img = blend(img, hx("#F6E3EF"), 0.20 * blob(xn, yn, 0.04, 0.72, 0.44, 0.36))
+        # 只留很轻的明暗起伏，避免"脏/乱"的颗粒感；玻璃仍靠大光斑的柔和过渡体现。
+        cloud = mottle(20261026, 70, 24) * 0.009 + mottle(20261027, 170, 55) * 0.014
         img = img * (1.0 + cloud)[..., None]
-        grain = 0.006
+        grain = 0.0025
 
     elif style == "plain":
         # 最素的一档：没有任何可辨认的结构。玻璃靠描边和阴影表达，不靠背景花纹。
