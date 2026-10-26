@@ -12,9 +12,7 @@ public enum AutoStartMethod
 {
     Registry,
     StartupFolder
-}
-
-public sealed record AutoStartResult(bool Success, AutoStartMethod? Method, string? Error);
+}public sealed record AutoStartResult(bool Success, AutoStartMethod? Method, string? Error);
 
 public static class AutoStartService
 {
@@ -112,6 +110,66 @@ public static class AutoStartService
 
     private static bool IsAccessError(Exception ex) =>
         ex is UnauthorizedAccessException or System.Security.SecurityException or IOException;
+}
+
+/// <summary>
+/// 把托盘图标固定到任务栏通知区。Windows 11 默认把新图标塞进「^ 隐藏区」，
+/// 用户点最小化/关闭后就会以为程序消失了，所以启动时主动把 IsPromoted 置 1。
+/// </summary>
+internal static class TrayIconPromoter
+{
+    private const string SettingsKey = @"Control Panel\NotifyIconSettings";
+
+    public static async Task PromoteAsync(string? executable, Action refresh)
+    {
+        if (string.IsNullOrWhiteSpace(executable))
+            return;
+
+        // 图标注册由 explorer 异步完成，前几次可能还查不到对应键
+        for (var attempt = 0; attempt < 8; attempt++)
+        {
+            if (TryPromote(executable))
+            {
+                try { refresh(); }
+                catch (Exception ex) when (ex is InvalidOperationException or ObjectDisposedException) { }
+                return;
+            }
+
+            await Task.Delay(600);
+        }
+    }
+
+    private static bool TryPromote(string executable)
+    {
+        try
+        {
+            using var root = Registry.CurrentUser.OpenSubKey(SettingsKey, writable: true);
+            if (root is null)
+                return false;
+
+            foreach (var name in root.GetSubKeyNames())
+            {
+                using var key = root.OpenSubKey(name, writable: true);
+                if (key?.GetValue("ExecutablePath") is not string path)
+                    continue;
+                if (!string.Equals(path, executable, StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                var promoted = key.GetValue("IsPromoted") as int? ?? 0;
+                if (promoted == 1)
+                    return true;
+
+                key.SetValue("IsPromoted", 1, RegistryValueKind.DWord);
+                return true;
+            }
+        }
+        catch (Exception ex) when (ex is UnauthorizedAccessException or System.Security.SecurityException)
+        {
+            // 被策略限制时保持默认行为，不影响主功能
+        }
+
+        return false;
+    }
 }
 
 public sealed record HotspotResult(bool Success, string Message)
