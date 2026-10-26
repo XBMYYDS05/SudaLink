@@ -756,22 +756,21 @@ public partial class MainWindow : Window
 
     // ---------- 窗口 ----------
 
-    private void MinimizeWindow(object sender, RoutedEventArgs e)
-    {
-        Hide();
-        ShowInTaskbar = false;
-    }
+    private void MinimizeWindow(object sender, RoutedEventArgs e) => CollapseToBackground();
 
     private void MaximizeWindow(object sender, RoutedEventArgs e) =>
         WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
 
-    private void CloseWindow(object sender, RoutedEventArgs e) => HideToTray();
+    private void CloseWindow(object sender, RoutedEventArgs e) => CollapseToBackground();
 
-    /// <summary>收进托盘：只隐藏窗口，绝不结束进程。</summary>
-    private void HideToTray()
+    /// <summary>
+    /// 收起到后台：缩到任务栏（不隐藏窗口），保证任务栏按钮始终可见；
+    /// 托盘图标能注册时也会同时存在。
+    /// </summary>
+    private void CollapseToBackground()
     {
-        Hide();
-        ShowInTaskbar = false;
+        ShowInTaskbar = true;
+        WindowState = WindowState.Minimized;
         ShowTrayHintOnce();
     }
 
@@ -781,7 +780,7 @@ public partial class MainWindow : Window
             return;
 
         e.Cancel = true;
-        HideToTray();
+        CollapseToBackground();
     }
 
     private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
@@ -815,7 +814,7 @@ public partial class MainWindow : Window
 
         if (msg == WM_CLOSE && !_exitRequested)
         {
-            HideToTray();
+            CollapseToBackground();
             handled = true;
             return IntPtr.Zero;
         }
