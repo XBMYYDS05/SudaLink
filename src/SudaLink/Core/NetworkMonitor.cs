@@ -13,6 +13,7 @@ public sealed class NetworkMonitor : IDisposable
     private int _failureCount;
     private ConnectionStatus? _lastStatus;
     private bool _wasOnline;
+    private string? _lastHotspotNote;
 
     public NetworkMonitor(AppConfig config, PortalAuthenticator authenticator)
     {
@@ -90,7 +91,7 @@ public sealed class NetworkMonitor : IDisposable
                         {
                             Log("网络已恢复，正在开启移动热点");
                             var hotspot = await HotspotService.EnsureOnAsync(_cancellation.Token);
-                            Log(hotspot.Message, hotspot.Success ? "信息" : "警告");
+                            LogHotspot(hotspot);
                         }
                         _wasOnline = true;
                         delay = config.Settings.IntervalSeconds;
@@ -185,7 +186,7 @@ public sealed class NetworkMonitor : IDisposable
                     if (config.Settings.AutoHotspot)
                     {
                         var hotspot = await HotspotService.EnsureOnAsync(_cancellation.Token);
-                        Log(hotspot.Message, hotspot.Success ? "信息" : "警告");
+                        LogHotspot(hotspot);
                     }
                     return config.Settings.IntervalSeconds;
                 }
@@ -238,6 +239,15 @@ public sealed class NetworkMonitor : IDisposable
 
     private void Log(string message, string level = "信息") =>
         LogReceived?.Invoke(new LogEntry(DateTime.Now, level, message));
+
+    /// <summary>同一条热点提示只记一次，避免每次轮询都刷屏。</summary>
+    private void LogHotspot(HotspotResult result)
+    {
+        if (string.Equals(result.Message, _lastHotspotNote, StringComparison.Ordinal))
+            return;
+        _lastHotspotNote = result.Message;
+        Log(result.Message, result.Success ? "信息" : "警告");
+    }
 
     private static string MaskAccount(string username)
     {

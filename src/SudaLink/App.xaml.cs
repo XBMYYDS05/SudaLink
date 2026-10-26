@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Windows;
 using System.Windows.Threading;
 using Application = System.Windows.Application;
@@ -15,6 +16,11 @@ public partial class App : Application
 
     private void OnStartup(object sender, StartupEventArgs e)
     {
+        // 管理员子进程：只做热点开关，不创建窗口/托盘。必须在单实例检查之前分流，
+        // 否则会被主实例的互斥体挡掉。
+        if (TryRunHotspotHelper(e.Args))
+            return;
+
         DispatcherUnhandledException += OnDispatcherUnhandledException;
         _mutex = new Mutex(true, MutexName, out var isFirstInstance);
         if (!isFirstInstance)
@@ -54,11 +60,9 @@ public partial class App : Application
 
         if (config.Settings.AutoStart)
         {
-            try { AutoStartService.Apply(true); }
-            catch (Exception ex) when (ex is UnauthorizedAccessException or System.Security.SecurityException)
-            {
-                warning = "无法设置开机启动，请检查系统权限。";
-            }
+            var applied = AutoStartService.Apply(true);
+            if (!applied.Success)
+                warning = $"无法设置开机启动：{applied.Error}";
         }
 
         var forcedTheme = Environment.GetCommandLineArgs()
@@ -90,6 +94,47 @@ public partial class App : Application
             _ = RenderAndExitAsync(window, renderDir,
                 double.TryParse(wait, out var seconds) ? seconds : 0.9);
         }
+    }
+
+    /// <summary>管理员子进程入口：执行一次热点开关，把结果写回临时文件后退出。</summary>
+    private bool TryRunHotspotHelper(string[] args)
+    {
+        var on = args.Contains("--hotspot-on", StringComparer.OrdinalIgnoreCase);
+        var off = args.Contains("--hotspot-off", StringComparer.OrdinalIgnoreCase);
+        if (!on && !off)
+            return false;
+
+        var resultPath = args
+            .FirstOrDefault(a => a.StartsWith("--result=", StringComparison.OrdinalIgnoreCase))?[9..];
+
+        HotspotResult result;
+        try
+        {
+            result = Task.Run(async () => on
+                ? await HotspotService.EnsureOnAsync()
+                : await HotspotService.TurnOffAsync()).GetAwaiter().GetResult();
+        }
+        catch (Exception ex)
+        {
+            result = HotspotResult.Fail($"热点操作失败：{ex.Message}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(resultPath))
+        {
+            try
+            {
+                File.WriteAllText(resultPath,
+                    JsonSerializer.Serialize(new { result.Success, result.Message }));
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                // 结果文件写不了就把退出码当作结果，主进程会给出兜底提示
+            }
+        }
+
+        // 子进程不进入 WPF 消息循环，写完结果直接退出（Shutdown 在 Startup 阶段不够可靠）
+        Environment.Exit(result.Success ? 0 : 2);
+        return true;
     }
 
     private async Task RenderAndExitAsync(MainWindow window, string directory, double waitSeconds)

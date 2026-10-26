@@ -173,7 +173,7 @@ POST http://10.9.1.3:801/eportal/?c=ACSetting&a=Login
 
 ## 版本记录
 
-从 2.0 重写到 4.4，一共 13 个版本，每一次的动机、实现和踩坑都在
+从 2.0 重写到 4.5，一共 14 个版本，每一次的动机、实现和踩坑都在
 [`docs/versions/`](docs/versions/) 里，索引见 [CHANGELOG.md](CHANGELOG.md)。
 
 ---

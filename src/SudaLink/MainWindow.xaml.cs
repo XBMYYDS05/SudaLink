@@ -580,17 +580,16 @@ public partial class MainWindow : Window
     private void ToggleAutoStart(object sender, RoutedEventArgs e)
     {
         var enabled = AutoStartSwitch.IsChecked == true;
-        try
-        {
-            AutoStartService.Apply(enabled);
-            _config.Settings.AutoStart = enabled;
-            SaveConfig();
-        }
-        catch (Exception ex) when (ex is UnauthorizedAccessException or System.Security.SecurityException)
+        var result = AutoStartService.Apply(enabled);
+        if (!result.Success)
         {
             AutoStartSwitch.IsChecked = !enabled;
-            MessageBox.Show($"开机启动设置失败：{ex.Message}", "设置", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show($"开机启动设置失败：{result.Error}", "设置", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
         }
+
+        _config.Settings.AutoStart = enabled;
+        SaveConfig();
     }
 
     private void ToggleCloseToTray(object sender, RoutedEventArgs e)
@@ -668,8 +667,8 @@ public partial class MainWindow : Window
         try
         {
             var result = _hotspotOn
-                ? await HotspotService.TurnOffAsync()
-                : await HotspotService.EnsureOnAsync();
+                ? await HotspotService.TurnOffAsync(allowElevation: true)
+                : await HotspotService.EnsureOnAsync(allowElevation: true);
             HotspotStatus.Foreground = new SolidColorBrush(result.Success ? OnlineColor : ErrorColor);
             HotspotStatus.Text = result.Message;
             AddLog(new LogEntry(DateTime.Now, result.Success ? "信息" : "警告", result.Message));
@@ -677,6 +676,41 @@ public partial class MainWindow : Window
         finally
         {
             _hotspotBusy = false;
+        }
+    }
+
+    private void RelaunchElevated(object sender, RoutedEventArgs e)
+    {
+        if (HotspotService.IsElevated)
+        {
+            AddLog(new LogEntry(DateTime.Now, "信息", "当前已是管理员权限，无需重启"));
+            return;
+        }
+
+        var executable = Environment.ProcessPath;
+        if (string.IsNullOrWhiteSpace(executable))
+        {
+            AddLog(new LogEntry(DateTime.Now, "警告", "无法确定程序路径，请手动以管理员身份运行"));
+            return;
+        }
+
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(executable)
+            {
+                UseShellExecute = true,
+                Verb = "runas"
+            });
+            AddLog(new LogEntry(DateTime.Now, "信息", "正在以管理员身份重启…"));
+            ExitApplication();
+        }
+        catch (Win32Exception ex) when (ex.NativeErrorCode == 1223)
+        {
+            AddLog(new LogEntry(DateTime.Now, "信息", "已取消管理员授权"));
+        }
+        catch (Exception ex)
+        {
+            AddLog(new LogEntry(DateTime.Now, "警告", $"无法以管理员身份重启：{ex.Message}"));
         }
     }
 
