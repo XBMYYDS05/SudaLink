@@ -32,7 +32,7 @@ public partial class MainWindow : Window
     private readonly ConfigStore _store;
     private readonly NetworkMonitor _monitor;
     private readonly ObservableCollection<LogEntry> _logs = [];
-    private readonly Forms.NotifyIcon _tray;
+    private Forms.NotifyIcon? _tray;
     private readonly string? _startupWarning;
     private Account? _editingAccount;
     private bool _exitRequested;
@@ -78,14 +78,9 @@ public partial class MainWindow : Window
         _monitor = new NetworkMonitor(_config, new PortalAuthenticator());
         _monitor.StatusChanged += OnNetworkStatus;
         _monitor.LogReceived += AddLog;
-        _tray = CreateTrayIcon();
+        StartTrayHost();
         // Windows 11 默认把新托盘图标藏在「^」里，这里主动固定到通知区
-        _ = TrayIconPromoter.PromoteAsync(Environment.ProcessPath,
-            () => Dispatcher.Invoke(() =>
-            {
-                _tray.Visible = false;
-                _tray.Visible = true;
-            }));
+        _ = TrayIconPromoter.PromoteAsync(Environment.ProcessPath, () => { });
         HotspotService.StateChanged += OnHotspotStateChanged;
         LogsList.ItemsSource = _logs;
         Loaded += OnLoaded;
@@ -118,40 +113,55 @@ public partial class MainWindow : Window
         }
     }
 
-    private Forms.NotifyIcon CreateTrayIcon()
+    private void StartTrayHost()
     {
-        var menu = new Forms.ContextMenuStrip();
-        menu.Items.Add("打开 SudaLink", null, (_, _) => Dispatcher.Invoke(ShowFromTray));
-        menu.Items.Add("立即连接", null, (_, _) => Dispatcher.Invoke(() =>
+        var thread = new Thread(() =>
         {
-            _monitor.ConnectNow();
-            AddLog(new LogEntry(DateTime.Now, "信息", "已请求立即检测并连接"));
-        }));
-        menu.Items.Add("开启 / 关闭热点", null, (_, _) => Dispatcher.InvokeAsync(StartHotspotAsync));
-        menu.Items.Add("暂停 / 恢复自动重连", null, (_, _) => Dispatcher.Invoke(() =>
-        {
-            _monitor.SetPaused(!_monitor.IsPaused);
-            UpdatePauseButton();
-        }));
-        menu.Items.Add(new Forms.ToolStripSeparator());
-        menu.Items.Add("退出", null, (_, _) => Dispatcher.Invoke(ExitApplication));
+            try
+            {
+            var menu = new Forms.ContextMenuStrip();
+            menu.Items.Add("打开 SudaLink", null, (_, _) => Dispatcher.Invoke(ShowFromTray));
+            menu.Items.Add("立即连接", null, (_, _) => Dispatcher.Invoke(() =>
+            {
+                _monitor.ConnectNow();
+                AddLog(new LogEntry(DateTime.Now, "信息", "已请求立即检测并连接"));
+            }));
+            menu.Items.Add("开启 / 关闭热点", null, (_, _) => Dispatcher.InvokeAsync(StartHotspotAsync));
+            menu.Items.Add("暂停 / 恢复自动重连", null, (_, _) => Dispatcher.Invoke(() =>
+            {
+                _monitor.SetPaused(!_monitor.IsPaused);
+                UpdatePauseButton();
+            }));
+            menu.Items.Add(new Forms.ToolStripSeparator());
+            menu.Items.Add("退出", null, (_, _) => Dispatcher.Invoke(ExitApplication));
 
-        var icon = System.Drawing.Icon.ExtractAssociatedIcon(Environment.ProcessPath ?? string.Empty)
-            ?? System.Drawing.SystemIcons.Application;
-        var tray = new Forms.NotifyIcon
+            var tray = new Forms.NotifyIcon
+            {
+                Text = "SudaLink · 检测中",
+                Icon = System.Drawing.Icon.ExtractAssociatedIcon(Environment.ProcessPath ?? string.Empty)
+                       ?? System.Drawing.SystemIcons.Application,
+                Visible = true,
+                ContextMenuStrip = menu
+            };
+            tray.DoubleClick += (_, _) => Dispatcher.Invoke(ShowFromTray);
+            tray.MouseClick += (_, e) =>
+            {
+                if (e.Button == Forms.MouseButtons.Left)
+                    Dispatcher.Invoke(ShowFromTray);
+            };
+            _tray = tray;
+            Forms.Application.Run();
+            }
+            catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception)
+            {
+            }
+        })
         {
-            Text = "SudaLink · 检测中",
-            Icon = icon,
-            Visible = true,
-            ContextMenuStrip = menu
+            IsBackground = true,
+            Name = "SudaLink.Tray"
         };
-        tray.DoubleClick += (_, _) => Dispatcher.Invoke(ShowFromTray);
-        tray.MouseClick += (_, e) =>
-        {
-            if (e.Button == Forms.MouseButtons.Left)
-                Dispatcher.Invoke(ShowFromTray);
-        };
-        return tray;
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
     }
 
     public void ShowFromTray()
@@ -190,7 +200,8 @@ public partial class MainWindow : Window
             SoftChange(StatusTitle, title);
             StatusDot.Fill = brush;
             AnimateGlow(glow);
-            _tray.Text = TrimTrayText($"SudaLink · {shortText}");
+            try { if (_tray is { } t) t.Text = TrimTrayText($"SudaLink · {shortText}"); }
+            catch (Exception ex) when (ex is InvalidOperationException or ObjectDisposedException) { }
 
             SetPulse(snapshot.Status is ConnectionStatus.Checking or ConnectionStatus.Authenticating, brush);
 
@@ -769,8 +780,8 @@ public partial class MainWindow : Window
     /// </summary>
     private void CollapseToBackground()
     {
-        ShowInTaskbar = true;
-        WindowState = WindowState.Minimized;
+        Hide();
+        ShowInTaskbar = false;
         ShowTrayHintOnce();
     }
 
@@ -829,7 +840,7 @@ public partial class MainWindow : Window
         _trayHintShown = true;
         try
         {
-            _tray.ShowBalloonTip(2600, "SudaLink 仍在后台运行",
+            _tray?.ShowBalloonTip(2600, "SudaLink 仍在后台运行",
                 "窗口已收进托盘，网络守护没有中断。要退出请右键托盘图标选择「退出」。",
                 Forms.ToolTipIcon.Info);
         }
@@ -870,8 +881,15 @@ public partial class MainWindow : Window
         _cleanedUp = true;
         HotspotService.StateChanged -= OnHotspotStateChanged;
         _monitor.Dispose();
-        _tray.Visible = false;
-        _tray.Dispose();
+        try
+        {
+            if (_tray is { } tray)
+            {
+                tray.Visible = false;
+                tray.Dispose();
+            }
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or ObjectDisposedException) { }
     }
 
     private static string TrimTrayText(string text) => text.Length <= 63 ? text : text[..63];

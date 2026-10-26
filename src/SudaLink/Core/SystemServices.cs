@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Security.Principal;
 using System.Text.Json;
 using Microsoft.Win32;
@@ -129,11 +130,7 @@ internal static class TrayIconPromoter
         for (var attempt = 0; attempt < 8; attempt++)
         {
             if (TryPromote(executable))
-            {
-                try { refresh(); }
-                catch (Exception ex) when (ex is InvalidOperationException or ObjectDisposedException) { }
                 return;
-            }
 
             await Task.Delay(600);
         }
@@ -198,10 +195,70 @@ public static class HotspotService
     {
         get
         {
-            using var identity = WindowsIdentity.GetCurrent();
-            return new WindowsPrincipal(identity).IsInRole(WindowsBuiltInRole.Administrator);
+            try
+            {
+                if (!OpenProcessToken(GetCurrentProcess(), TokenQuery, out var token))
+                    return false;
+                try
+                {
+                    return IntegrityLevel(token) >= 0x3000; // High 及以上
+                }
+                finally
+                {
+                    CloseHandle(token);
+                }
+            }
+            catch (Exception ex) when (ex is DllNotFoundException or EntryPointNotFoundException)
+            {
+                using var identity = WindowsIdentity.GetCurrent();
+                return new WindowsPrincipal(identity).IsInRole(WindowsBuiltInRole.Administrator);
+            }
         }
     }
+
+    private const uint TokenQuery = 0x0008;
+    private const int TokenIntegrityLevelClass = 25;
+
+    private static int IntegrityLevel(IntPtr token)
+    {
+        GetTokenInformation(token, TokenIntegrityLevelClass, IntPtr.Zero, 0, out var size);
+        if (size <= 0)
+            return 0;
+
+        var buffer = Marshal.AllocHGlobal(size);
+        try
+        {
+            if (!GetTokenInformation(token, TokenIntegrityLevelClass, buffer, size, out _))
+                return 0;
+
+            var sid = Marshal.ReadIntPtr(buffer);          // TOKEN_MANDATORY_LABEL.Label.Sid
+            var count = Marshal.ReadByte(sid, 1);           // SID sub-authority 数量
+            return Marshal.ReadInt32(sid, 8 + (count - 1) * 4);
+        }
+        finally
+        {
+            Marshal.FreeHGlobal(buffer);
+        }
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct TokenElevation
+    {
+        public int Elevated;
+    }
+
+    [DllImport("advapi32.dll", SetLastError = true)]
+    private static extern bool OpenProcessToken(IntPtr process, uint access, out IntPtr token);
+
+    [DllImport("advapi32.dll", SetLastError = true)]
+    private static extern bool GetTokenInformation(
+        IntPtr token, int infoClass, IntPtr info, int length, out int returned);
+
+    [DllImport("kernel32.dll")]
+    private static extern IntPtr GetCurrentProcess();
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool CloseHandle(IntPtr handle);
 
     public static Task<bool> IsOnAsync()
     {
