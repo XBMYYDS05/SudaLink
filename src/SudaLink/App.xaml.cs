@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Threading;
@@ -20,6 +21,21 @@ public partial class App : Application
         // 否则会被主实例的互斥体挡掉。
         if (TryRunHotspotHelper(e.Args))
             return;
+
+        // 维护用：以普通权限重新拉起资源管理器（修复被高权限 Explorer 影响的托盘）
+        if (e.Args.Contains("--respawn-shell", StringComparer.OrdinalIgnoreCase))
+        {
+            try
+            {
+                Process.Start(new ProcessStartInfo("explorer.exe") { UseShellExecute = true });
+            }
+            catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException)
+            {
+            }
+
+            Environment.Exit(0);
+            return;
+        }
 
         DispatcherUnhandledException += OnDispatcherUnhandledException;
         _mutex = new Mutex(true, MutexName, out var isFirstInstance);

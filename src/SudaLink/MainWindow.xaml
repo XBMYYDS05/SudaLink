@@ -497,7 +497,7 @@
                         </controls:GlassPanel>
 
                         <Grid Margin="6,12,4,0">
-                            <TextBlock Text="设置修改后立即生效并自动保存 · v4.5.2" FontSize="9.5"
+                            <TextBlock Text="设置修改后立即生效并自动保存 · v4.5.3" FontSize="9.5"
                                        Foreground="{DynamicResource Muted}" VerticalAlignment="Center"/>
                             <TextBlock Text="溪边木" FontSize="9.5" Foreground="{DynamicResource Muted}"
                                        HorizontalAlignment="Right" VerticalAlignment="Center"

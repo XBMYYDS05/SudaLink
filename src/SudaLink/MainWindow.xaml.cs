@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Media.Animation;
@@ -49,6 +50,12 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         WindowFx.Attach(this);
+        // 在 Win32 层拦截关闭，避免 WPF Closing/Closed 链路里任何一处抢先 Shutdown
+        SourceInitialized += (_, _) =>
+        {
+            if (PresentationSource.FromVisual(this) is HwndSource source)
+                source.AddHook(WndProc);
+        };
         // 系统关机/注销时允许窗口正常关闭，否则会被"收进托盘"逻辑挡住
         Application.Current.SessionEnding += (_, _) => _exitRequested = true;
         _config = config;
@@ -744,18 +751,36 @@ public partial class MainWindow : Window
     private void MaximizeWindow(object sender, RoutedEventArgs e) =>
         WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
 
-    private void CloseWindow(object sender, RoutedEventArgs e) => Close();
+    private void CloseWindow(object sender, RoutedEventArgs e) => HideToTray();
+
+    /// <summary>收进托盘：只隐藏窗口，绝不结束进程。</summary>
+    private void HideToTray()
+    {
+        Hide();
+        ShowInTaskbar = false;
+        ShowTrayHintOnce();
+    }
 
     private void OnWindowClosing(object? sender, CancelEventArgs e)
     {
-        // 点叉 / Alt+F4 一律收进托盘，只有托盘菜单「退出」才真正结束进程
         if (_exitRequested)
             return;
 
         e.Cancel = true;
-        Hide();
-        ShowInTaskbar = false;
-        ShowTrayHintOnce();
+        HideToTray();
+    }
+
+    private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+    {
+        const int WM_CLOSE = 0x0010;
+        if (msg == WM_CLOSE && !_exitRequested)
+        {
+            HideToTray();
+            handled = true;
+            return IntPtr.Zero;
+        }
+
+        return IntPtr.Zero;
     }
 
     private void ShowTrayHintOnce()
