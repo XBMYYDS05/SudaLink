@@ -23,6 +23,9 @@ settings.txt
 .workbuddy/
 CampusNet(2).exe
 
+# 交付包（给上传用的整理目录，含 exe/bundle）
+deliver/
+
 # 系统
 .DS_Store
 Thumbs.db

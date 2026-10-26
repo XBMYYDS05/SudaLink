@@ -419,6 +419,20 @@
 
                                 <Grid Height="52">
                                     <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="管理员权限" FontSize="12" Foreground="{DynamicResource Ink}"/>
+                                        <TextBlock Text="自动开启热点需要管理员权限" FontSize="10"
+                                                   Foreground="{DynamicResource Muted}" Margin="0,3,0,0"/>
+                                    </StackPanel>
+                                    <Button Content="以管理员身份重启" Style="{StaticResource Ghost}"
+                                            FontSize="11.5" Padding="10,0"
+                                            HorizontalAlignment="Right" VerticalAlignment="Center"
+                                            Click="RelaunchElevated"/>
+                                </Grid>
+
+                                <Border Height="1" Background="{DynamicResource LineSoft}"/>
+
+                                <Grid Height="52">
+                                    <StackPanel VerticalAlignment="Center">
                                         <TextBlock Text="开机自动启动" FontSize="12" Foreground="{DynamicResource Ink}"/>
                                         <TextBlock Text="登录 Windows 后在后台静默运行" FontSize="10"
                                                    Foreground="{DynamicResource Muted}" Margin="0,3,0,0"/>
@@ -481,7 +495,7 @@
                         </controls:GlassPanel>
 
                         <Grid Margin="6,12,4,0">
-                            <TextBlock Text="设置修改后立即生效并自动保存 · v4.4" FontSize="9.5"
+                            <TextBlock Text="设置修改后立即生效并自动保存 · v4.5" FontSize="9.5"
                                        Foreground="{DynamicResource Muted}" VerticalAlignment="Center"/>
                             <TextBlock Text="溪边木" FontSize="9.5" Foreground="{DynamicResource Muted}"
                                        HorizontalAlignment="Right" VerticalAlignment="Center"
