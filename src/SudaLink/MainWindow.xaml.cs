@@ -58,6 +58,13 @@ public partial class MainWindow : Window
         _monitor.StatusChanged += OnNetworkStatus;
         _monitor.LogReceived += AddLog;
         _tray = CreateTrayIcon();
+        // Windows 11 默认把新托盘图标藏在「^」里，这里主动固定到通知区
+        _ = TrayIconPromoter.PromoteAsync(Environment.ProcessPath,
+            () => Dispatcher.Invoke(() =>
+            {
+                _tray.Visible = false;
+                _tray.Visible = true;
+            }));
         HotspotService.StateChanged += OnHotspotStateChanged;
         LogsList.ItemsSource = _logs;
         Loaded += OnLoaded;
@@ -118,6 +125,11 @@ public partial class MainWindow : Window
             ContextMenuStrip = menu
         };
         tray.DoubleClick += (_, _) => Dispatcher.Invoke(ShowFromTray);
+        tray.MouseClick += (_, e) =>
+        {
+            if (e.Button == Forms.MouseButtons.Left)
+                Dispatcher.Invoke(ShowFromTray);
+        };
         return tray;
     }
 
