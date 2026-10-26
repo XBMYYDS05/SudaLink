@@ -44,6 +44,16 @@ public partial class MainWindow : Window
     private bool _trayHintShown;
     private Storyboard? _pulse;
 
+    private const int HotKeyId = 0x53;
+    private const uint ModAlt = 0x0001;
+    private const uint ModControl = 0x0002;
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool UnregisterHotKey(IntPtr hWnd, int id);
+
     public bool StartInTray { get; init; }
 
     public MainWindow(AppConfig config, ConfigStore store, string? startupWarning)
@@ -54,7 +64,11 @@ public partial class MainWindow : Window
         SourceInitialized += (_, _) =>
         {
             if (PresentationSource.FromVisual(this) is HwndSource source)
+            {
                 source.AddHook(WndProc);
+                // 全局唤回热键：Ctrl+Alt+S（托盘不可见时的兜底入口）
+                RegisterHotKey(source.Handle, HotKeyId, ModControl | ModAlt, 0x53);
+            }
         };
         // 系统关机/注销时允许窗口正常关闭，否则会被"收进托盘"逻辑挡住
         Application.Current.SessionEnding += (_, _) => _exitRequested = true;
@@ -773,6 +787,32 @@ public partial class MainWindow : Window
     private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
         const int WM_CLOSE = 0x0010;
+        const int WM_HOTKEY = 0x0312;
+        const int WM_RESPAWN_SHELL = 0x8000 + 7;
+
+        if (msg == WM_HOTKEY && wParam.ToInt32() == HotKeyId)
+        {
+            ShowFromTray();
+            handled = true;
+            return IntPtr.Zero;
+        }
+
+        // 维护用：由本进程（普通权限）拉起 explorer，修复高权限 Explorer 导致托盘注册失败
+        if (msg == WM_RESPAWN_SHELL)
+        {
+            try
+            {
+                System.Diagnostics.Process.Start(
+                    new System.Diagnostics.ProcessStartInfo("explorer.exe") { UseShellExecute = true });
+            }
+            catch (Exception ex) when (ex is Win32Exception or InvalidOperationException)
+            {
+            }
+
+            handled = true;
+            return IntPtr.Zero;
+        }
+
         if (msg == WM_CLOSE && !_exitRequested)
         {
             HideToTray();
@@ -817,6 +857,15 @@ public partial class MainWindow : Window
 
     private void Cleanup()
     {
+        try
+        {
+            var handle = new WindowInteropHelper(this).Handle;
+            if (handle != IntPtr.Zero)
+                UnregisterHotKey(handle, HotKeyId);
+        }
+        catch (InvalidOperationException)
+        {
+        }
         if (_cleanedUp)
             return;
         _cleanedUp = true;

@@ -446,7 +446,7 @@
                                 <Grid Height="52">
                                     <StackPanel VerticalAlignment="Center">
                                         <TextBlock Text="关闭窗口时收进托盘" FontSize="12" Foreground="{DynamicResource Ink}"/>
-                                        <TextBlock Text="点叉不会退出，退出请右键托盘图标" FontSize="10"
+                                        <TextBlock Text="点叉不会退出，Ctrl+Alt+S 可随时唤回" FontSize="10"
                                                    Foreground="{DynamicResource Muted}" Margin="0,3,0,0"/>
                                     </StackPanel>
                                     <Border Style="{StaticResource Tag}" HorizontalAlignment="Right"
@@ -497,7 +497,7 @@
                         </controls:GlassPanel>
 
                         <Grid Margin="6,12,4,0">
-                            <TextBlock Text="设置修改后立即生效并自动保存 · v4.5.3" FontSize="9.5"
+                            <TextBlock Text="设置修改后立即生效并自动保存 · v4.5.5" FontSize="9.5"
                                        Foreground="{DynamicResource Muted}" VerticalAlignment="Center"/>
                             <TextBlock Text="溪边木" FontSize="9.5" Foreground="{DynamicResource Muted}"
                                        HorizontalAlignment="Right" VerticalAlignment="Center"
