@@ -171,6 +171,31 @@ POST http://10.9.1.3:801/eportal/?c=ACSetting&a=Login
 
 ---
 
+## 常见问题
+
+### 双击没反应 / 提示「Failed to map file ... error 5」
+
+说明 `SudaLink.exe` 被标上了 **Low 完整性级别**（某些安全软件或沙箱会把写入的文件标记为低完整性），
+Windows 会拒绝把它作为可执行映像加载。把完整性级别改回 Medium 即可：
+
+```powershell
+icacls "D:\SUDANET\SudaLink.exe" /setintegritylevel Medium
+```
+
+如果希望整个目录以后新生成的文件都正常，可对整个目录执行一次：
+
+```powershell
+icacls "D:\SUDANET" /setintegritylevel "(OI)(CI)Medium" /T /C /Q
+```
+
+### 热点提示「需要管理员权限」
+
+移动热点 API 要求调用进程具备管理员权限，这是 Windows 的限制，不是程序 bug。
+点一次热点按钮完成 UAC 授权即可；想让「联网后自动开热点」也全自动，
+请在设置里点「以管理员身份重启」，之后不再弹授权框。
+
+---
+
 ## 版本记录
 
 从 2.0 重写到 4.5，一共 14 个版本，每一次的动机、实现和踩坑都在
