@@ -40,6 +40,7 @@ public partial class MainWindow : Window
     private bool _loadingSettings;
     private bool _hotspotOn;
     private bool _pulsing;
+    private bool _trayHintShown;
     private Storyboard? _pulse;
 
     public bool StartInTray { get; init; }
@@ -48,6 +49,8 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         WindowFx.Attach(this);
+        // 系统关机/注销时允许窗口正常关闭，否则会被"收进托盘"逻辑挡住
+        Application.Current.SessionEnding += (_, _) => _exitRequested = true;
         _config = config;
         _store = store;
         _startupWarning = startupWarning;
@@ -502,7 +505,6 @@ public partial class MainWindow : Window
         AutoReconnectSwitch.IsChecked = _config.Settings.AutoReconnect;
         AutoHotspotSwitch.IsChecked = _config.Settings.AutoHotspot;
         AutoStartSwitch.IsChecked = _config.Settings.AutoStart;
-        CloseToTraySwitch.IsChecked = _config.Settings.CloseToTray;
         GatewayInput.Text = _config.Settings.Gateway;
         SelectInterval(_config.Settings.IntervalSeconds);
         _loadingSettings = true;
@@ -589,12 +591,6 @@ public partial class MainWindow : Window
         }
 
         _config.Settings.AutoStart = enabled;
-        SaveConfig();
-    }
-
-    private void ToggleCloseToTray(object sender, RoutedEventArgs e)
-    {
-        _config.Settings.CloseToTray = CloseToTraySwitch.IsChecked == true;
         SaveConfig();
     }
 
@@ -740,11 +736,30 @@ public partial class MainWindow : Window
 
     private void OnWindowClosing(object? sender, CancelEventArgs e)
     {
-        if (!_exitRequested && _config.Settings.CloseToTray)
+        // 点叉 / Alt+F4 一律收进托盘，只有托盘菜单「退出」才真正结束进程
+        if (_exitRequested)
+            return;
+
+        e.Cancel = true;
+        Hide();
+        ShowInTaskbar = false;
+        ShowTrayHintOnce();
+    }
+
+    private void ShowTrayHintOnce()
+    {
+        if (_trayHintShown)
+            return;
+        _trayHintShown = true;
+        try
         {
-            e.Cancel = true;
-            Hide();
-            ShowInTaskbar = false;
+            _tray.ShowBalloonTip(2600, "SudaLink 仍在后台运行",
+                "窗口已收进托盘，网络守护没有中断。要退出请右键托盘图标选择「退出」。",
+                Forms.ToolTipIcon.Info);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
+        {
+            // 系统关闭气泡通知时忽略
         }
     }
 

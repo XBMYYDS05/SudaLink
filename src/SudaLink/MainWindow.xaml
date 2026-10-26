@@ -445,12 +445,14 @@
 
                                 <Grid Height="52">
                                     <StackPanel VerticalAlignment="Center">
-                                        <TextBlock Text="关闭时最小化到托盘" FontSize="12" Foreground="{DynamicResource Ink}"/>
-                                        <TextBlock Text="关闭窗口后仍在后台守护网络" FontSize="10"
+                                        <TextBlock Text="关闭窗口时收进托盘" FontSize="12" Foreground="{DynamicResource Ink}"/>
+                                        <TextBlock Text="点叉不会退出，退出请右键托盘图标" FontSize="10"
                                                    Foreground="{DynamicResource Muted}" Margin="0,3,0,0"/>
                                     </StackPanel>
-                                    <CheckBox x:Name="CloseToTraySwitch" Style="{StaticResource Switch}"
-                                              HorizontalAlignment="Right" Click="ToggleCloseToTray"/>
+                                    <Border Style="{StaticResource Tag}" HorizontalAlignment="Right"
+                                            VerticalAlignment="Center" Background="{DynamicResource SelFill}" Padding="9,3">
+                                        <TextBlock Text="始终开启" FontSize="9.5" Foreground="{DynamicResource Sub}"/>
+                                    </Border>
                                 </Grid>
 
                                 <Border Height="1" Background="{DynamicResource LineSoft}"/>
@@ -495,7 +497,7 @@
                         </controls:GlassPanel>
 
                         <Grid Margin="6,12,4,0">
-                            <TextBlock Text="设置修改后立即生效并自动保存 · v4.5" FontSize="9.5"
+                            <TextBlock Text="设置修改后立即生效并自动保存 · v4.5.1" FontSize="9.5"
                                        Foreground="{DynamicResource Muted}" VerticalAlignment="Center"/>
                             <TextBlock Text="溪边木" FontSize="9.5" Foreground="{DynamicResource Muted}"
                                        HorizontalAlignment="Right" VerticalAlignment="Center"
