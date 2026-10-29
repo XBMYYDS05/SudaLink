@@ -9,12 +9,19 @@
     <UseWindowsForms>true</UseWindowsForms>
     <AssemblyName>SudaLink</AssemblyName>
     <RootNamespace>SudaLink</RootNamespace>
-    <Version>4.5.7</Version>
-    <AssemblyVersion>4.5.7.0</AssemblyVersion>
-    <FileVersion>4.5.7.0</FileVersion>
+    <Version>4.6.2</Version>
+    <AssemblyVersion>4.6.2.0</AssemblyVersion>
+    <FileVersion>4.6.2.0</FileVersion>
     <Product>SudaLink</Product>
     <Description>苏大校园网自动登录助手</Description>
     <ApplicationIcon>Assets\App.ico</ApplicationIcon>
+    <!-- 不写这一行 SDK 会塞进默认清单（asInvoker），app.manifest 里的
+         requireAdministrator 根本不会生效 -->
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- 自己写入口点：开机时 WPF 可能因提交内存不足起不来，需要在真正创建
+         Application 之前做延迟重试（见 Program.cs）。指定 StartupObject 后
+         App.g.cs 里自动生成的 Main 会被忽略。 -->
+    <StartupObject>SudaLink.Program</StartupObject>
     <PublishSingleFile>true</PublishSingleFile>
     <SelfContained>true</SelfContained>
     <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
@@ -22,6 +29,9 @@
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
     <DebugType>none</DebugType>
     <DebugSymbols>false</DebugSymbols>
+    <!-- WFAC010：WinForms 分析器希望 DPI 用项目属性配置。这里是 WPF 主体 + 一个
+         NotifyIcon，WPF 的 per-monitor v2 必须写在清单里，所以保留清单并忽略该提示。 -->
+    <NoWarn>$(NoWarn);WFAC010</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <Using Include="System.IO" />

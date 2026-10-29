@@ -32,13 +32,18 @@
     <SolidColorBrush x:Key="DangerEdge" Color="#4DC42B3D"/>
     <SolidColorBrush x:Key="Warn" Color="#B86A10"/>
 
+    <!-- 控件发丝边：上亮下暗，比卡片外缘弱一档，避免白底上出现"双描边" -->
+    <LinearGradientBrush x:Key="ControlEdge" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="#66FFFFFF" Offset="0"/>
+        <GradientStop Color="#14000000" Offset="1"/>
+    </LinearGradientBrush>
     <!-- 玻璃：面板整体比背景亮一档，配合投影才能从高对比底色上"浮"起来 -->
-    <SolidColorBrush x:Key="GlassStrong" Color="#47FFFFFF"/>
-    <SolidColorBrush x:Key="GlassMedium" Color="#52FFFFFF"/>
-    <SolidColorBrush x:Key="GlassSoft" Color="#2EFFFFFF"/>
-    <Color x:Key="GlassTopA">#52FFFFFF</Color>
-    <Color x:Key="GlassTopB">#26FFFFFF</Color>
-    <Color x:Key="GlassTopC">#10FFFFFF</Color>
+    <SolidColorBrush x:Key="GlassStrong" Color="#33FFFFFF"/>
+    <SolidColorBrush x:Key="GlassMedium" Color="#3DFFFFFF"/>
+    <SolidColorBrush x:Key="GlassSoft" Color="#24FFFFFF"/>
+    <Color x:Key="GlassTopA">#2EFFFFFF</Color>
+    <Color x:Key="GlassTopB">#14FFFFFF</Color>
+    <Color x:Key="GlassTopC">#0AFFFFFF</Color>
     <Color x:Key="GlassBottom">#12000000</Color>
     <LinearGradientBrush x:Key="Edge" StartPoint="0,0" EndPoint="0.9,1">
         <GradientStop Color="#FFFFFFFF" Offset="0"/>
@@ -46,12 +51,12 @@
         <GradientStop Color="#4DFFFFFF" Offset="0.74"/>
         <GradientStop Color="#380A1424" Offset="1"/>
     </LinearGradientBrush>
-    <DropShadowEffect x:Key="PanelShadow" BlurRadius="20" ShadowDepth="4" Direction="270"
-                      Color="#14274E" Opacity="0.24"/>
-    <DropShadowEffect x:Key="TabShadow" BlurRadius="14" ShadowDepth="3" Direction="270"
-                      Color="#14274E" Opacity="0.18"/>
-    <DropShadowEffect x:Key="FloatShadow" BlurRadius="28" ShadowDepth="9" Direction="270"
-                      Color="#14274E" Opacity="0.26"/>
+    <DropShadowEffect x:Key="PanelShadow" BlurRadius="16" ShadowDepth="3" Direction="270"
+                      Color="#1B2C4A" Opacity="0.2" RenderingBias="Performance"/>
+    <DropShadowEffect x:Key="TabShadow" BlurRadius="12" ShadowDepth="2" Direction="270"
+                      Color="#1B2C4A" Opacity="0.14" RenderingBias="Performance"/>
+    <DropShadowEffect x:Key="FloatShadow" BlurRadius="18" ShadowDepth="5" Direction="270"
+                      Color="#1B2C4A" Opacity="0.18" RenderingBias="Performance"/>
 
     <Color x:Key="SpecularCore">#4DFFFFFF</Color>
     <Color x:Key="SpecularMid">#14FFFFFF</Color>
@@ -59,6 +64,17 @@
     <Color x:Key="RimInnerB">#1F0A1424</Color>
     <Color x:Key="TopLineA">#B3FFFFFF</Color>
     <Color x:Key="TopLineB">#FFFFFFFF</Color>
+    <!-- 液态玻璃：边缘镜圈的棱镜色散（冷色偏上、暖色偏下，透明度都很低） -->
+    <Color x:Key="ChromaA">#14A8D8FF</Color>
+    <Color x:Key="ChromaB">#00D6C2FF</Color>
+    <Color x:Key="ChromaC">#12FF9FC4</Color>
+    <!-- 底面透光 -->
+    <Color x:Key="InnerGlowBottom">#3DFFFFFF</Color>
+    <!-- 整个窗口的外投影与边框 -->
+    <DropShadowEffect x:Key="WindowShadow" BlurRadius="16" ShadowDepth="4" Direction="270"
+                      Color="#0E1E36" Opacity="0.34" RenderingBias="Performance"/>
+    <Color x:Key="WindowEdgeTop">#B3FFFFFF</Color>
+    <Color x:Key="WindowEdgeBottom">#120B1A33</Color>
     <SolidColorBrush x:Key="PrimaryEdge" Color="#66FFFFFF"/>
     <Color x:Key="PrimaryGloss">#73FFFFFF</Color>
 
@@ -69,7 +85,7 @@
     <SolidColorBrush x:Key="HoverWhite" Color="#FFFFFF"/>
     <SolidColorBrush x:Key="CaptionHover" Color="#14000000"/>
     <SolidColorBrush x:Key="CloseHover" Color="#D93A4B"/>
-    <SolidColorBrush x:Key="ScrollThumb" Color="#24000000"/>
+    <SolidColorBrush x:Key="ScrollThumb" Color="#1A000000"/>
     <SolidColorBrush x:Key="ScrollThumbHot" Color="#4A000000"/>
     <Color x:Key="PrimaryA">#E03048</Color>
     <Color x:Key="PrimaryB">#A8162C</Color>

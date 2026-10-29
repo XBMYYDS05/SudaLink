@@ -5,9 +5,12 @@
   <trustInfo xmlns="urn:schemas-microsoft-com:asm.v2">
     <security>
       <requestedPrivileges xmlns="urn:schemas-microsoft-com:asm.v3">
-        <!-- 移动热点 API 与托盘图标注册都要求进程与 Explorer 同级；
-             本机 UAC 已关闭，不会弹授权框 -->
-        <requestedExecutionLevel level="requireAdministrator" uiAccess="false"/>
+        <!-- 与 Explorer 同级即可。托盘图标的注册受 UIPI 约束：进程完整性低于
+             Explorer 时 Shell_NotifyIcon 直接返回 ERROR_ACCESS_DENIED(5)，图标
+             永远不出现（4.5.x 一直卡在这里）。requireAdministrator 在本机
+             （UAC 已关闭）并不生效，反而会被 Explorer 降成 Medium，故改为
+             asInvoker；需要管理员的热点操作仍由 hotspot 子进程按需提权。 -->
+        <requestedExecutionLevel level="asInvoker" uiAccess="false"/>
       </requestedPrivileges>
     </security>
   </trustInfo>
@@ -17,11 +20,4 @@
       <supportedOS Id="{8e0f7a12-bfb3-4fe8-b9a5-48fd50a15a9a}"/>
     </application>
   </compatibility>
-
-  <application xmlns="urn:schemas-microsoft-com:asm.v3">
-    <windowsSettings>
-      <dpiAware xmlns="http://schemas.microsoft.com/SMI/2005/WindowsSettings">true/pm</dpiAware>
-      <dpiAwareness xmlns="http://schemas.microsoft.com/SMI/2016/WindowsSettings">permonitorv2</dpiAwareness>
-    </windowsSettings>
-  </application>
 </assembly>

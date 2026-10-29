@@ -32,11 +32,12 @@ public partial class MainWindow : Window
     private readonly ConfigStore _store;
     private readonly NetworkMonitor _monitor;
     private readonly ObservableCollection<LogEntry> _logs = [];
-    private Forms.NotifyIcon? _tray;
+    private TrayIconHost? _tray;
     private readonly string? _startupWarning;
     private Account? _editingAccount;
     private bool _exitRequested;
     private bool _cleanedUp;
+    private bool _runtimeStarted;
     private bool _hotspotBusy;
     private bool _loadingSettings;
     private bool _hotspotOn;
@@ -56,10 +57,15 @@ public partial class MainWindow : Window
 
     public bool StartInTray { get; init; }
 
+    /// <summary>托盘图标是否真的建起来了。没建起来时不允许"启动了却没有入口"。</summary>
+    public bool HasTray => _tray is not null;
+
     public MainWindow(AppConfig config, ConfigStore store, string? startupWarning)
     {
         InitializeComponent();
         WindowFx.Attach(this);
+        Shell.SizeChanged += (_, _) => UpdateFrameClip();
+        UpdateFrame();
         // 在 Win32 层拦截关闭，避免 WPF Closing/Closed 链路里任何一处抢先 Shutdown
         SourceInitialized += (_, _) =>
         {
@@ -70,7 +76,7 @@ public partial class MainWindow : Window
                 RegisterHotKey(source.Handle, HotKeyId, ModControl | ModAlt, 0x53);
             }
         };
-        // 系统关机/注销时允许窗口正常关闭，否则会被"收进托盘"逻辑挡住
+        // 系统关机/注销时允许窗口正常关闭，否则会被"缩到后台"逻辑挡住
         Application.Current.SessionEnding += (_, _) => _exitRequested = true;
         _config = config;
         _store = store;
@@ -78,7 +84,7 @@ public partial class MainWindow : Window
         _monitor = new NetworkMonitor(_config, new PortalAuthenticator());
         _monitor.StatusChanged += OnNetworkStatus;
         _monitor.LogReceived += AddLog;
-        StartTrayHost();
+        StartTray();
         // Windows 11 默认把新托盘图标藏在「^」里，这里主动固定到通知区
         _ = TrayIconPromoter.PromoteAsync(Environment.ProcessPath, () => { });
         HotspotService.StateChanged += OnHotspotStateChanged;
@@ -98,6 +104,46 @@ public partial class MainWindow : Window
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
+        InitializeRuntime();
+
+        // 兜底：后台启动且托盘可用时窗口本不该显示，万一被外部 Show 出来，立刻收回去
+        if (StartInTray && HasTray && !_exitRequested)
+        {
+            Hide();
+            ShowInTaskbar = false;
+        }
+    }
+
+    /// <summary>后台启动：只创建窗口句柄（热键、托盘、消息钩子都用得上），但不显示窗口。</summary>
+    public void StartHidden()
+    {
+        ShowInTaskbar = false;
+        _ = new WindowInteropHelper(this).EnsureHandle();
+        InitializeRuntime();
+    }
+
+    /// <summary>
+    /// 托盘用不了时的后台启动：直接以最小化姿态出现在任务栏上。
+    /// 既不会在开机时弹一个窗口出来，也不会变成一个找不到入口的幽灵进程。
+    /// </summary>
+    public void StartMinimized()
+    {
+        ShowInTaskbar = true;
+        WindowState = WindowState.Minimized;
+        Show();
+        InitializeRuntime();
+    }
+
+    /// <summary>
+    /// 后台服务与界面初值只跑一次。前台启动走 Loaded，后台启动走 StartHidden，
+    /// 两条路径都要能独立完成初始化 —— 以前这些活全塞在 Loaded 里，隐藏启动就一条都没执行。
+    /// </summary>
+    private void InitializeRuntime()
+    {
+        if (_runtimeStarted)
+            return;
+        _runtimeStarted = true;
+
         AddLog(new LogEntry(DateTime.Now, "信息", "SudaLink 已在后台守护校园网"));
         if (!string.IsNullOrWhiteSpace(_startupWarning))
             AddLog(new LogEntry(DateTime.Now, "警告", _startupWarning));
@@ -106,73 +152,53 @@ public partial class MainWindow : Window
         UpdateLogFooter();
         _ = RefreshHotspotAsync();
         _monitor.Start();
-        if (StartInTray)
-        {
-            Hide();
-            ShowInTaskbar = false;
-        }
     }
 
-    private void StartTrayHost()
+    private void StartTray()
     {
-        var thread = new Thread(() =>
+        if (!TrayCapability.CanRegister(out var reason))
         {
-            try
-            {
-            var menu = new Forms.ContextMenuStrip();
-            menu.Items.Add("打开 SudaLink", null, (_, _) => Dispatcher.Invoke(ShowFromTray));
-            menu.Items.Add("立即连接", null, (_, _) => Dispatcher.Invoke(() =>
+            AppLog.Write($"托盘不可用：{reason}");
+            AddLog(new LogEntry(DateTime.Now, "警告",
+                "系统不允许本程序注册托盘图标，最小化将缩到任务栏"));
+            return;
+        }
+
+        _tray = TrayIconHost.TryCreate(
+            show: () => Dispatcher.Invoke(ShowFromTray),
+            connectNow: () => Dispatcher.Invoke(() =>
             {
                 _monitor.ConnectNow();
                 AddLog(new LogEntry(DateTime.Now, "信息", "已请求立即检测并连接"));
-            }));
-            menu.Items.Add("开启 / 关闭热点", null, (_, _) => Dispatcher.InvokeAsync(StartHotspotAsync));
-            menu.Items.Add("暂停 / 恢复自动重连", null, (_, _) => Dispatcher.Invoke(() =>
+            }),
+            toggleHotspot: () => Dispatcher.InvokeAsync(StartHotspotAsync),
+            togglePause: () => Dispatcher.Invoke(() =>
             {
                 _monitor.SetPaused(!_monitor.IsPaused);
                 UpdatePauseButton();
-            }));
-            menu.Items.Add(new Forms.ToolStripSeparator());
-            menu.Items.Add("退出", null, (_, _) => Dispatcher.Invoke(ExitApplication));
+            }),
+            openLog: AppLog.OpenFolder,
+            exit: () => Dispatcher.Invoke(ExitApplication));
 
-            var tray = new Forms.NotifyIcon
-            {
-                Text = "SudaLink · 检测中",
-                Icon = System.Drawing.Icon.ExtractAssociatedIcon(Environment.ProcessPath ?? string.Empty)
-                       ?? System.Drawing.SystemIcons.Application,
-                Visible = true,
-                ContextMenuStrip = menu
-            };
-            tray.DoubleClick += (_, _) => Dispatcher.Invoke(ShowFromTray);
-            tray.MouseClick += (_, e) =>
-            {
-                if (e.Button == Forms.MouseButtons.Left)
-                    Dispatcher.Invoke(ShowFromTray);
-            };
-            _tray = tray;
-            Forms.Application.Run();
-            }
-            catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception)
-            {
-            }
-        })
+        if (_tray is null)
         {
-            IsBackground = true,
-            Name = "SudaLink.Tray"
-        };
-        thread.SetApartmentState(ApartmentState.STA);
-        thread.Start();
+            AddLog(new LogEntry(DateTime.Now, "警告", "托盘图标没有注册成功，最小化时将退回到任务栏"));
+            AppLog.Write("托盘不可用，收起到后台会退化为缩到任务栏");
+        }
     }
 
     public void ShowFromTray()
     {
         ShowInTaskbar = true;
-        Show();
+        if (!IsVisible)
+            Show();
         WindowState = WindowState.Normal;
         Activate();
         Topmost = true;
         Topmost = false;
         Focus();
+        // 窗口可能是在隐藏状态下完成布局的，唤回时补一次绘制，避免停在黑底
+        InvalidateVisual();
     }
 
     private void OnNetworkStatus(NetworkSnapshot snapshot)
@@ -200,8 +226,7 @@ public partial class MainWindow : Window
             SoftChange(StatusTitle, title);
             StatusDot.Fill = brush;
             AnimateGlow(glow);
-            try { if (_tray is { } t) t.Text = TrimTrayText($"SudaLink · {shortText}"); }
-            catch (Exception ex) when (ex is InvalidOperationException or ObjectDisposedException) { }
+            _tray?.SetText($"SudaLink · {shortText}");
 
             SetPulse(snapshot.Status is ConnectionStatus.Checking or ConnectionStatus.Authenticating, brush);
 
@@ -767,22 +792,56 @@ public partial class MainWindow : Window
 
     // ---------- 窗口 ----------
 
+    /// <summary>窗口圆角。比内部卡片的 22~26 略小，视觉上才像"外壳包住内容"。</summary>
+    private const double WindowRadius = 24;
+
+    private void OnWindowStateChanged(object sender, EventArgs e) => UpdateFrame();
+
+    private void UpdateFrame()
+    {
+        UpdateFrameClip();
+    }
+
+    /// <summary>把内容裁成圆角。WPF 的 Border 不会替子元素裁剪，只能自己上几何 Clip。</summary>
+    private void UpdateFrameClip()
+    {
+        if (Shell.ActualWidth < 1 || Shell.ActualHeight < 1)
+        {
+            Shell.Clip = null;
+            return;
+        }
+
+        var radius = WindowState == WindowState.Maximized ? 0 : WindowRadius;
+        Shell.Clip = radius > 0
+            ? new RectangleGeometry(new Rect(0, 0, Shell.ActualWidth, Shell.ActualHeight), radius, radius)
+            : null;
+    }
+
     private void MinimizeWindow(object sender, RoutedEventArgs e) => CollapseToBackground();
 
     private void MaximizeWindow(object sender, RoutedEventArgs e) =>
         WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
 
-    private void CloseWindow(object sender, RoutedEventArgs e) => CollapseToBackground();
+    /// <summary>点叉就是退出。想留在后台请用最小化（或托盘菜单）。</summary>
+    private void CloseWindow(object sender, RoutedEventArgs e) => ExitApplication();
 
     /// <summary>
-    /// 收起到后台：缩到任务栏（不隐藏窗口），保证任务栏按钮始终可见；
-    /// 托盘图标能注册时也会同时存在。
+    /// 收起到托盘。托盘图标是唯一入口，图标没建起来时必须退化为缩到任务栏，
+    /// 否则用户既看不到窗口也看不到图标。
     /// </summary>
     private void CollapseToBackground()
     {
-        Hide();
-        ShowInTaskbar = false;
-        ShowTrayHintOnce();
+        if (_tray is not null)
+        {
+            Hide();
+            ShowInTaskbar = false;
+            ShowTrayHintOnce();
+        }
+        else
+        {
+            WindowState = WindowState.Minimized;
+            ShowInTaskbar = true;
+        }
     }
 
     private void OnWindowClosing(object? sender, CancelEventArgs e)
@@ -790,13 +849,12 @@ public partial class MainWindow : Window
         if (_exitRequested)
             return;
 
-        e.Cancel = true;
-        CollapseToBackground();
+        // 正常关闭：交给 WPF 走完 Closed，Cleanup 在 OnWindowClosed 里做
+        _exitRequested = true;
     }
 
     private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
-        const int WM_CLOSE = 0x0010;
         const int WM_HOTKEY = 0x0312;
         const int WM_RESPAWN_SHELL = 0x8000 + 7;
 
@@ -823,13 +881,6 @@ public partial class MainWindow : Window
             return IntPtr.Zero;
         }
 
-        if (msg == WM_CLOSE && !_exitRequested)
-        {
-            CollapseToBackground();
-            handled = true;
-            return IntPtr.Zero;
-        }
-
         return IntPtr.Zero;
     }
 
@@ -838,16 +889,8 @@ public partial class MainWindow : Window
         if (_trayHintShown)
             return;
         _trayHintShown = true;
-        try
-        {
-            _tray?.ShowBalloonTip(2600, "SudaLink 仍在后台运行",
-                "窗口已收进托盘，网络守护没有中断。要退出请右键托盘图标选择「退出」。",
-                Forms.ToolTipIcon.Info);
-        }
-        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
-        {
-            // 系统关闭气泡通知时忽略
-        }
+        _tray?.ShowHint("SudaLink 仍在后台运行",
+            "网络守护没有中断。点托盘图标可唤回窗口，右键可以退出。");
     }
 
     private void ExitApplication()
@@ -881,18 +924,9 @@ public partial class MainWindow : Window
         _cleanedUp = true;
         HotspotService.StateChanged -= OnHotspotStateChanged;
         _monitor.Dispose();
-        try
-        {
-            if (_tray is { } tray)
-            {
-                tray.Visible = false;
-                tray.Dispose();
-            }
-        }
-        catch (Exception ex) when (ex is InvalidOperationException or ObjectDisposedException) { }
+        _tray?.Dispose();
+        _tray = null;
     }
-
-    private static string TrimTrayText(string text) => text.Length <= 63 ? text : text[..63];
 
     private void UpdateLogFooter() =>
         LogsFooter.Text = $"网关 {_config.Settings.Gateway} · 每 {_config.Settings.IntervalSeconds} 秒检测 · 共 {_logs.Count} 条记录";

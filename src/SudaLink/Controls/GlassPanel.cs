@@ -44,7 +44,7 @@ public class GlassPanel : ContentControl
     /// <summary>高斯模糊半径。0 表示关闭（回落为纯半透明面板）。</summary>
     public static readonly DependencyProperty BlurProperty = DependencyProperty.Register(
         nameof(Blur), typeof(double), typeof(GlassPanel),
-        new PropertyMetadata(14.0, (d, _) =>
+        new PropertyMetadata(10.0, (d, _) =>
         {
             var panel = (GlassPanel)d;
             panel.ApplyBlur();
@@ -57,17 +57,40 @@ public class GlassPanel : ContentControl
     /// </summary>
     public static readonly DependencyProperty RefractionProperty = DependencyProperty.Register(
         nameof(Refraction), typeof(double), typeof(GlassPanel),
-        new PropertyMetadata(1.0, (d, _) => ((GlassPanel)d).UpdateFrost(force: true)));
+        new PropertyMetadata(1.7, (d, _) => ((GlassPanel)d).UpdateFrost(force: true)));
 
     /// <summary>面板内的语义辉光色；透明色表示不发光。</summary>
     public static readonly DependencyProperty GlowProperty = DependencyProperty.Register(
         nameof(Glow), typeof(Color), typeof(GlassPanel),
         new PropertyMetadata(Colors.Transparent, (d, e) => ((GlassPanel)d).ApplyGlow((Color)e.NewValue)));
 
+    /// <summary>
+    /// 边缘镜圈宽度（DIP）。真实玻璃最容易被认出来的特征不是模糊，而是边缘那一圈
+    /// 被"折"过来的背景：越靠近边框，取样的范围越窄，画面就越大、越亮。
+    /// 0 表示退化成普通磨砂玻璃。
+    /// </summary>
+    public static readonly DependencyProperty BezelProperty = DependencyProperty.Register(
+        nameof(Bezel), typeof(double), typeof(GlassPanel),
+        new PropertyMetadata(9.0, (d, _) =>
+        {
+            var panel = (GlassPanel)d;
+            panel.ApplyBezel();
+            panel.UpdateFrost(force: true);
+        }));
+
+    /// <summary>镜圈放大倍率强度，0.6 含蓄、1.6 夸张。</summary>
+    public static readonly DependencyProperty LensProperty = DependencyProperty.Register(
+        nameof(Lens), typeof(double), typeof(GlassPanel),
+        new PropertyMetadata(1.7, (d, _) => ((GlassPanel)d).UpdateFrost(force: true)));
+
     private Grid? _root;
+    private Border? _lens;
+    private Border? _bezelTint;
     private Border? _frost;
     private ImageBrush? _frostBrush;
+    private ImageBrush? _lensBrush;
     private Rect? _frostViewbox;
+    private Rect? _lensViewbox;
     private FrameworkElement? _specular;
     private TranslateTransform? _shift;
     private Ellipse? _glow;
@@ -133,6 +156,18 @@ public class GlassPanel : ContentControl
         set => SetValue(RefractionProperty, value);
     }
 
+    public double Bezel
+    {
+        get => (double)GetValue(BezelProperty);
+        set => SetValue(BezelProperty, value);
+    }
+
+    public double Lens
+    {
+        get => (double)GetValue(LensProperty);
+        set => SetValue(LensProperty, value);
+    }
+
     /// <summary>模糊会把边缘吃掉，所以采样区域要外扩这么多，再用圆角裁掉。</summary>
     private double Bleed => Math.Ceiling(Blur * 2.2) + 6;
 
@@ -141,12 +176,15 @@ public class GlassPanel : ContentControl
         base.OnApplyTemplate();
 
         _root = GetTemplateChild("PART_Root") as Grid;
+        _lens = GetTemplateChild("PART_Lens") as Border;
+        _bezelTint = GetTemplateChild("PART_BezelTint") as Border;
         _frost = GetTemplateChild("PART_Frost") as Border;
         _specular = GetTemplateChild("PART_Specular") as FrameworkElement;
         _shift = GetTemplateChild("PART_SpecularShift") as TranslateTransform;
         _glow = GetTemplateChild("PART_Glow") as Ellipse;
 
         ApplyBlur();
+        ApplyBezel();
         ApplyClip();
         UpdateFrost(force: true);
         BuildGlow();
@@ -189,10 +227,14 @@ public class GlassPanel : ContentControl
             };
     }
 
-    /// <summary>按自身在背景中的位置裁取背景位图，得到 1:1 的“透过玻璃”画面。</summary>
+    /// <summary>
+    /// 双层取样：外层是"镜圈"，内层是"内芯"。
+    /// 内芯按 1:1（再叠一点点折射）取背景，镜圈把同一片背景多放大几个百分点 ——
+    /// 于是边框那一圈看起来像把外面的画面折进来了，这就是液态玻璃最关键的厚度感。
+    /// </summary>
     private void UpdateFrost(bool force = false)
     {
-        if (_frost is null || FrostDisabled())
+        if (_frost is null || _lens is null || FrostDisabled())
             return;
 
         if (Backdrop is not Image { Source: { } source } || source.Width < 1)
@@ -208,12 +250,6 @@ public class GlassPanel : ContentControl
             return; // 还没挂到同一棵可视树
         }
 
-        var bleed = Bleed;
-        // 面板在“背景坐标系”里的矩形（外扩 bleed 抵消模糊吃边）
-        var pane = new Rect(offset.X - bleed, offset.Y - bleed,
-            ActualWidth + bleed * 2, ActualHeight + bleed * 2);
-
-        // 把背景坐标系换算成壁纸的像素坐标：UniformToFill 居中裁切
         var area = new Size(Backdrop.ActualWidth, Backdrop.ActualHeight);
         if (area.Width < 1 || area.Height < 1)
             return;
@@ -222,44 +258,101 @@ public class GlassPanel : ContentControl
         var originX = (area.Width - source.Width * scale) / 2;
         var originY = (area.Height - source.Height * scale) / 2;
 
-        var rect = new Rect(
-            (pane.X - originX) / scale,
-            (pane.Y - originY) / scale,
-            pane.Width / scale,
-            pane.Height / scale);
+        var bleed = Bleed;
+        var bezel = CurrentBezel();
+
+        Rect ToSource(double x, double y, double width, double height) => new(
+            (x - originX) / scale,
+            (y - originY) / scale,
+            Math.Max(1, width / scale),
+            Math.Max(1, height / scale));
+
+        // 内芯：面板内缩一个镜圈宽度，取样范围外扩 bleed 抵消模糊吃边
+        var inner = ToSource(
+            offset.X + bezel - bleed,
+            offset.Y + bezel - bleed,
+            Math.Max(1, ActualWidth - bezel * 2) + bleed * 2,
+            Math.Max(1, ActualHeight - bezel * 2) + bleed * 2);
+
+        // 镜圈：整块面板
+        var lens = ToSource(
+            offset.X - bleed,
+            offset.Y - bleed,
+            ActualWidth + bleed * 2,
+            ActualHeight + bleed * 2);
 
         // 折射：取样范围收一点点，玻璃内的画面就会被轻微放大
         var refraction = Math.Clamp(Refraction, 0.9, 1.0);
-        if (refraction < 0.999)
-        {
-            var insetX = rect.Width * (1 - refraction) / 2;
-            var insetY = rect.Height * (1 - refraction) / 2;
-            rect = new Rect(rect.X + insetX, rect.Y + insetY,
-                rect.Width - insetX * 2, rect.Height - insetY * 2);
-        }
+        inner = Shrink(inner, 1 - refraction);
+        // 镜圈再放大一点，边缘的弯曲幅度就出来了
+        lens = Shrink(lens, Math.Clamp(Lens, 0, 2) * 0.055);
 
         if (_frostBrush is null || !ReferenceEquals(_frostBrush.ImageSource, source))
         {
-            _frostBrush = new ImageBrush(source)
-            {
-                ViewboxUnits = BrushMappingMode.Absolute,
-                Stretch = Stretch.Fill,
-                AlignmentX = AlignmentX.Left,
-                AlignmentY = AlignmentY.Top
-            };
-            _frost.Margin = new Thickness(-bleed);
+            _frostBrush = NewBrush(source);
             _frost.Background = _frostBrush;
             _frostViewbox = null;
         }
 
-        if (!force && _frostViewbox is { } old &&
-            Math.Abs(old.X - rect.X) < 0.35 && Math.Abs(old.Y - rect.Y) < 0.35 &&
-            Math.Abs(old.Width - rect.Width) < 0.35)
+        if (_lensBrush is null || !ReferenceEquals(_lensBrush.ImageSource, source))
+        {
+            _lensBrush = NewBrush(source);
+            _lens.Background = _lensBrush;
+            _lensViewbox = null;
+        }
+
+        _frost.Margin = new Thickness(bezel - bleed);
+        _lens.Margin = new Thickness(-bleed);
+
+        if (force || _frostViewbox is not { } oldInner || Changed(oldInner, inner))
+        {
+            _frostBrush.Viewbox = inner;
+            _frostViewbox = inner;
+        }
+
+        if (force || _lensViewbox is not { } oldLens || Changed(oldLens, lens))
+        {
+            _lensBrush.Viewbox = lens;
+            _lensViewbox = lens;
+        }
+
+        static bool Changed(Rect a, Rect b) =>
+            Math.Abs(a.X - b.X) > 0.35 || Math.Abs(a.Y - b.Y) > 0.35 ||
+            Math.Abs(a.Width - b.Width) > 0.35 || Math.Abs(a.Height - b.Height) > 0.35;
+    }
+
+    private static ImageBrush NewBrush(ImageSource source) => new(source)
+    {
+        ViewboxUnits = BrushMappingMode.Absolute,
+        Stretch = Stretch.Fill,
+        AlignmentX = AlignmentX.Left,
+        AlignmentY = AlignmentY.Top
+    };
+
+    /// <summary>按比例向中心收缩，用于制造放大效果。</summary>
+    private static Rect Shrink(Rect rect, double factor)
+    {
+        if (factor <= 0.0005)
+            return rect;
+        var insetX = rect.Width * factor / 2;
+        var insetY = rect.Height * factor / 2;
+        return new Rect(rect.X + insetX, rect.Y + insetY,
+            Math.Max(1, rect.Width - insetX * 2), Math.Max(1, rect.Height - insetY * 2));
+    }
+
+    private double CurrentBezel() =>
+        Math.Max(0, Math.Min(Bezel, Math.Min(ActualWidth, ActualHeight) / 2 - 1));
+
+    /// <summary>镜圈宽度决定棱镜色散那一圈的粗细。</summary>
+    private void ApplyBezel()
+    {
+        if (_bezelTint is null)
             return;
 
-        _frost.Margin = new Thickness(-bleed);
-        _frostBrush.Viewbox = rect;
-        _frostViewbox = rect;
+        var bezel = CurrentBezel();
+        _bezelTint.BorderThickness = new Thickness(bezel);
+        _bezelTint.CornerRadius = CornerRadius;
+        _bezelTint.Opacity = bezel < 1 ? 0 : 1;
     }
 
     /// <summary>
@@ -310,6 +403,7 @@ public class GlassPanel : ContentControl
     {
         base.OnRenderSizeChanged(sizeInfo);
         ApplyClip();
+        ApplyBezel();
         UpdateFrost(force: true);
 
         if (!_placed)

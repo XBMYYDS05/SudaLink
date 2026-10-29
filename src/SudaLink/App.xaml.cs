@@ -22,7 +22,6 @@ public partial class App : Application
         if (TryRunHotspotHelper(e.Args))
             return;
 
-
         DispatcherUnhandledException += OnDispatcherUnhandledException;
         _mutex = new Mutex(true, MutexName, out var isFirstInstance);
         if (!isFirstInstance)
@@ -65,6 +64,8 @@ public partial class App : Application
             var applied = AutoStartService.Apply(true);
             if (!applied.Success)
                 warning = $"无法设置开机启动：{applied.Error}";
+            else
+                AppLog.Write($"开机启动已登记（{applied.Method}）");
         }
 
         var forcedTheme = Environment.GetCommandLineArgs()
@@ -78,12 +79,32 @@ public partial class App : Application
 
         ThemeService.Apply(config.Settings.Theme);
 
-        var window = new MainWindow(config, store, warning)
-        {
-            StartInTray = e.Args.Contains("--background", StringComparer.OrdinalIgnoreCase)
-        };
+        var background = e.Args.Contains("--background", StringComparer.OrdinalIgnoreCase);
+        var window = new MainWindow(config, store, warning) { StartInTray = background };
         MainWindow = window;
-        window.Show();
+
+        if (background && window.HasTray)
+        {
+            // 后台启动：只建窗口句柄，从不 Show —— 开机时那一下黑框就是"显示完立刻隐藏"
+            // 留下的残影，干脆别显示。
+            window.StartHidden();
+        }
+        else
+        {
+            // 托盘图标建不起来时不能静默隐藏，否则用户既没有窗口也没有入口
+            if (background)
+            {
+                AppLog.Write("托盘不可用，后台启动改为缩到任务栏");
+                window.StartMinimized();
+            }
+            else
+            {
+                window.Show();
+            }
+        }
+
+        Program.StartupCompleted = true;
+        AppLog.Write($"界面就绪（{(background ? "后台启动" : "前台启动")}）");
 
         // 开发用：--render=<目录> 把三个页面渲染成 PNG 后退出（截图 / 文档用）
         // 可选 --render-wait=<秒>：先跑一段时间再渲染，用来观察实际运行后的日志与状态
@@ -154,12 +175,14 @@ public partial class App : Application
     private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
         e.Handled = true;
+        AppLog.Write($"界面异常：{e.Exception}");
         MessageBox.Show($"操作未完成：{e.Exception.Message}", "SudaLink",
             MessageBoxButton.OK, MessageBoxImage.Warning);
     }
 
     private void OnExit(object sender, ExitEventArgs e)
     {
+        AppLog.Write($"进程退出（ExitCode={e.ApplicationExitCode}）");
         _registeredWait?.Unregister(null);
         _activationEvent?.Dispose();
         if (_mutex is not null)

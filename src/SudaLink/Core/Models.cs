@@ -86,7 +86,7 @@ public sealed class AppSettings
     public bool AutoReconnect { get; set; } = true;
     public bool AutoHotspot { get; set; }
     public bool AutoStart { get; set; }
-    public bool CloseToTray { get; set; } = true;
+
     public int IntervalSeconds { get; set; } = 10;
     public string Gateway { get; set; } = "10.9.1.3";
 
