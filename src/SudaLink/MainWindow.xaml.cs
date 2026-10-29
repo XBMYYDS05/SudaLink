@@ -243,7 +243,7 @@ public partial class MainWindow : Window
     {
         var paused = _monitor.IsPaused;
         PauseText.Text = paused ? "重连已暂停" : "重连守护中";
-        PauseButton.Style = (Style)FindResource(paused ? "PillOff" : "PillOn");
+        PauseButton.Style = (Style)FindResource(paused ? "TileOff" : "TileOn");
         PauseButton.ToolTip = paused ? "点击恢复自动重连" : "点击暂停自动重连";
     }
 
@@ -254,7 +254,7 @@ public partial class MainWindow : Window
     {
         _hotspotOn = on;
         HotspotText.Text = on ? "热点已开启" : "热点未开启";
-        HotspotButton.Style = (Style)FindResource(on ? "PillOn" : "PillOff");
+        HotspotButton.Style = (Style)FindResource(on ? "TileOn" : "TileOff");
         HotspotButton.ToolTip = on ? "点击关闭移动热点" : "点击开启移动热点";
     }
 

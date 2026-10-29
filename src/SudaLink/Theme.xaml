@@ -175,6 +175,100 @@
         </Setter>
     </Style>
 
+    <!-- ===== 功能瓷片：控制中心式，图标在上、状态在下 ===== -->
+    <Style x:Key="Tile" TargetType="Button">
+        <Setter Property="Height" Value="74"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FontSize" Value="10.5"/>
+        <Setter Property="FontWeight" Value="Medium"/>
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="Background" Value="{DynamicResource SurfaceSoft}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource ControlEdge}"/>
+        <Setter Property="Foreground" Value="{DynamicResource Sub}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Grid RenderTransformOrigin="0.5,0.5">
+                        <Grid.RenderTransform>
+                            <ScaleTransform x:Name="Press" ScaleX="1" ScaleY="1"/>
+                        </Grid.RenderTransform>
+                        <Border CornerRadius="18" Background="{TemplateBinding Background}"/>
+                        <Border CornerRadius="18" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1"/>
+                        <Border x:Name="Hover" CornerRadius="18" Background="{DynamicResource HoverWhite}"
+                                Opacity="0" IsHitTestVisible="False"/>
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Trigger.EnterActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="Hover" Storyboard.TargetProperty="Opacity"
+                                                         To="0.12" Duration="0:0:0.16"/>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.EnterActions>
+                            <Trigger.ExitActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="Hover" Storyboard.TargetProperty="Opacity"
+                                                         To="0" Duration="0:0:0.22"/>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.ExitActions>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Trigger.EnterActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="Press" Storyboard.TargetProperty="ScaleX"
+                                                         To="0.96" Duration="0:0:0.1"/>
+                                        <DoubleAnimation Storyboard.TargetName="Press" Storyboard.TargetProperty="ScaleY"
+                                                         To="0.96" Duration="0:0:0.1"/>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.EnterActions>
+                            <Trigger.ExitActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="Press" Storyboard.TargetProperty="ScaleX"
+                                                         To="1" Duration="0:0:0.24" EasingFunction="{StaticResource EaseOut}"/>
+                                        <DoubleAnimation Storyboard.TargetName="Press" Storyboard.TargetProperty="ScaleY"
+                                                         To="1" Duration="0:0:0.24" EasingFunction="{StaticResource EaseOut}"/>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.ExitActions>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.45"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="TileOn" TargetType="Button" BasedOn="{StaticResource Tile}">
+        <Setter Property="Background" Value="{DynamicResource SuccessFill}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource SuccessEdge}"/>
+        <Setter Property="Foreground" Value="{DynamicResource SuccessText}"/>
+    </Style>
+
+    <Style x:Key="TileOff" TargetType="Button" BasedOn="{StaticResource Tile}"/>
+
+    <Style x:Key="TileAccent" TargetType="Button" BasedOn="{StaticResource Tile}">
+        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource PrimaryEdge}"/>
+        <Setter Property="Background">
+            <Setter.Value>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="0.35,1">
+                    <GradientStop Color="{DynamicResource PrimaryA}" Offset="0"/>
+                    <GradientStop Color="{DynamicResource PrimaryB}" Offset="1"/>
+                </LinearGradientBrush>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- ===== 主按钮（强调色玻璃胶囊） ===== -->
     <Style x:Key="Primary" TargetType="Button">
         <Setter Property="Height" Value="34"/>
