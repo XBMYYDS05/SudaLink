@@ -26,6 +26,8 @@ CampusNet(2).exe
 
 # 交付包（给上传用的整理目录，含 exe/bundle）
 deliver/
+# 其它本地发布目录
+dist-*/
 
 # 本地杂项
 @AutomationLog.txt

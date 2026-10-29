@@ -199,7 +199,7 @@ icacls "D:\SUDANET" /setintegritylevel "(OI)(CI)Medium" /T /C /Q
 
 ## 版本记录
 
-从 2.0 重写到 4.8，一共 16 个版本，每一次的动机、实现和踩坑都在
+从 2.0 重写到 4.8.1，一共 30 个版本，每一次的动机、实现和踩坑都在
 [`docs/versions/`](docs/versions/) 里，索引见 [CHANGELOG.md](CHANGELOG.md)。
 
 ---
