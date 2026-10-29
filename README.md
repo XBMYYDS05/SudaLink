@@ -142,7 +142,7 @@ src/SudaLink/
   ThemeService.cs        # 运行时替换色板
   WindowFx.cs            # DWM 圆角、阴影、标题栏行为
   MainWindow.xaml(.cs)   # 三个页面
-tests/SudaLink.Tests/    # 6 个针对协议的单元测试
+tests/SudaLink.Tests/    # 7 个针对协议的单元测试
 tools/gen_wallpaper.py   # 生成 Assets/backdrop-*.jpg
 docs/versions/           # 每个版本做了什么、为什么、踩了什么坑
 ```
