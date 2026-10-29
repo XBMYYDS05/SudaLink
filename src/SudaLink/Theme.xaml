@@ -6,6 +6,8 @@
     <ImageBrush x:Key="Grain" ImageSource="pack://application:,,,/Assets/grain.png" TileMode="Tile"
                 Viewport="0,0,128,128" ViewportUnits="Absolute" Stretch="None"/>
     <CubicEase x:Key="EaseOut" EasingMode="EaseOut"/>
+    <!-- 液态玻璃的「弹性」：松手后轻微回弹一次，像一滴水晃了晃（Liquid Glass React elasticity） -->
+    <ElasticEase x:Key="ElasticOut" EasingMode="EaseOut" Oscillations="1" Springiness="4"/>
     <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
     <controls:CornerRadiusInsetConverter x:Key="RadiusInset" Inset="2.5"/>
 
@@ -113,9 +115,47 @@
                                     </Ellipse>
                                 </Canvas>
 
-                                <!-- 玻璃厚度：就一道内描边，上亮下暗 -->
-                                <Border CornerRadius="{TemplateBinding CornerRadius}"
-                                        BorderBrush="{DynamicResource Edge}" BorderThickness="1"/>
+                                <!-- 棱镜色散：只画在镜圈那一圈，冷色偏上暖色偏下，
+                                     模拟 liquid-glass-react 的 RGB 通道分离边缘 -->
+                                <Border x:Name="PART_Chroma" CornerRadius="{TemplateBinding CornerRadius}"
+                                        BorderThickness="14" IsHitTestVisible="False">
+                                    <Border.BorderBrush>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                            <GradientStop Color="{DynamicResource ChromaA}" Offset="0"/>
+                                            <GradientStop Color="{DynamicResource ChromaB}" Offset="0.55"/>
+                                            <GradientStop Color="{DynamicResource ChromaC}" Offset="1"/>
+                                        </LinearGradientBrush>
+                                    </Border.BorderBrush>
+                                </Border>
+
+                                <!-- 悬停顶部光泽：径向白光从顶边漫进来（hover radial highlight） -->
+                                <Border x:Name="PART_TopGloss" CornerRadius="{TemplateBinding CornerRadius}"
+                                        Opacity="0" IsHitTestVisible="False">
+                                    <Border.Background>
+                                        <RadialGradientBrush Center="0.5,0" GradientOrigin="0.5,0"
+                                                             RadiusX="0.75" RadiusY="1.0">
+                                            <GradientStop Color="{DynamicResource GlossTop}" Offset="0"/>
+                                            <GradientStop Color="#00FFFFFF" Offset="0.65"/>
+                                        </RadialGradientBrush>
+                                    </Border.Background>
+                                </Border>
+
+                                <!-- 玻璃厚度：就一道内描边，上亮下暗。
+                                     PART_EdgeSpin 让光边跟着指针转向 —— 边缘永远朝光（Apple 的 "edges take on the light"） -->
+                                <Border x:Name="PART_Edge" CornerRadius="{TemplateBinding CornerRadius}"
+                                        BorderThickness="1" IsHitTestVisible="False">
+                                    <Border.BorderBrush>
+                                        <LinearGradientBrush StartPoint="0.1,0" EndPoint="0.9,1">
+                                            <GradientStop Color="{DynamicResource EdgeA}" Offset="0"/>
+                                            <GradientStop Color="{DynamicResource EdgeB}" Offset="0.4"/>
+                                            <GradientStop Color="{DynamicResource EdgeC}" Offset="0.74"/>
+                                            <GradientStop Color="{DynamicResource EdgeD}" Offset="1"/>
+                                            <LinearGradientBrush.RelativeTransform>
+                                                <RotateTransform x:Name="PART_EdgeSpin" CenterX="0.5" CenterY="0.5"/>
+                                            </LinearGradientBrush.RelativeTransform>
+                                        </LinearGradientBrush>
+                                    </Border.BorderBrush>
+                                </Border>
 
                                 <ContentPresenter Margin="{TemplateBinding Padding}"/>
                             </Grid>
@@ -143,9 +183,9 @@
                         <Grid.RenderTransform>
                             <ScaleTransform x:Name="Press" ScaleX="1" ScaleY="1"/>
                         </Grid.RenderTransform>
-                        <Border CornerRadius="14" Background="{TemplateBinding Background}"/>
-                        <Border CornerRadius="14" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1"/>
-                        <Border x:Name="Hover" CornerRadius="14" Background="{DynamicResource HoverWhite}"
+                        <Border CornerRadius="12" Background="{TemplateBinding Background}"/>
+                        <Border CornerRadius="12" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1"/>
+                        <Border x:Name="Hover" CornerRadius="12" Background="{DynamicResource HoverWhite}"
                                 Opacity="0" IsHitTestVisible="False"/>
                         <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Grid>
@@ -183,9 +223,9 @@
                                 <BeginStoryboard>
                                     <Storyboard>
                                         <DoubleAnimation Storyboard.TargetName="Press" Storyboard.TargetProperty="ScaleX"
-                                                         To="1" Duration="0:0:0.24" EasingFunction="{StaticResource EaseOut}"/>
+                                                         To="1" Duration="0:0:0.42" EasingFunction="{StaticResource ElasticOut}"/>
                                         <DoubleAnimation Storyboard.TargetName="Press" Storyboard.TargetProperty="ScaleY"
-                                                         To="1" Duration="0:0:0.24" EasingFunction="{StaticResource EaseOut}"/>
+                                                         To="1" Duration="0:0:0.42" EasingFunction="{StaticResource ElasticOut}"/>
                                     </Storyboard>
                                 </BeginStoryboard>
                             </Trigger.ExitActions>
@@ -291,9 +331,9 @@
                                 <BeginStoryboard>
                                     <Storyboard>
                                         <DoubleAnimation Storyboard.TargetName="Press" Storyboard.TargetProperty="ScaleX"
-                                                         To="1" Duration="0:0:0.24" EasingFunction="{StaticResource EaseOut}"/>
+                                                         To="1" Duration="0:0:0.42" EasingFunction="{StaticResource ElasticOut}"/>
                                         <DoubleAnimation Storyboard.TargetName="Press" Storyboard.TargetProperty="ScaleY"
-                                                         To="1" Duration="0:0:0.24" EasingFunction="{StaticResource EaseOut}"/>
+                                                         To="1" Duration="0:0:0.42" EasingFunction="{StaticResource ElasticOut}"/>
                                     </Storyboard>
                                 </BeginStoryboard>
                             </Trigger.ExitActions>
@@ -362,9 +402,9 @@
                                 <BeginStoryboard>
                                     <Storyboard>
                                         <DoubleAnimation Storyboard.TargetName="Press" Storyboard.TargetProperty="ScaleX"
-                                                         To="1" Duration="0:0:0.24" EasingFunction="{StaticResource EaseOut}"/>
+                                                         To="1" Duration="0:0:0.42" EasingFunction="{StaticResource ElasticOut}"/>
                                         <DoubleAnimation Storyboard.TargetName="Press" Storyboard.TargetProperty="ScaleY"
-                                                         To="1" Duration="0:0:0.24" EasingFunction="{StaticResource EaseOut}"/>
+                                                         To="1" Duration="0:0:0.42" EasingFunction="{StaticResource ElasticOut}"/>
                                     </Storyboard>
                                 </BeginStoryboard>
                             </Trigger.ExitActions>
@@ -433,9 +473,9 @@
                                 <BeginStoryboard>
                                     <Storyboard>
                                         <DoubleAnimation Storyboard.TargetName="Press" Storyboard.TargetProperty="ScaleX"
-                                                         To="1" Duration="0:0:0.24" EasingFunction="{StaticResource EaseOut}"/>
+                                                         To="1" Duration="0:0:0.42" EasingFunction="{StaticResource ElasticOut}"/>
                                         <DoubleAnimation Storyboard.TargetName="Press" Storyboard.TargetProperty="ScaleY"
-                                                         To="1" Duration="0:0:0.24" EasingFunction="{StaticResource EaseOut}"/>
+                                                         To="1" Duration="0:0:0.42" EasingFunction="{StaticResource ElasticOut}"/>
                                     </Storyboard>
                                 </BeginStoryboard>
                             </Trigger.ExitActions>
@@ -469,7 +509,7 @@
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
                     <Grid>
-                        <Border x:Name="Bd" Background="{DynamicResource SurfaceSoft}" CornerRadius="9" Opacity="0"/>
+                        <Border x:Name="Bd" Background="{DynamicResource SurfaceSoft}" CornerRadius="10" Opacity="0"/>
                         <ContentPresenter Margin="{TemplateBinding Padding}" VerticalAlignment="Center"/>
                     </Grid>
                     <ControlTemplate.Triggers>
@@ -497,10 +537,10 @@
         </Setter>
     </Style>
 
-    <!-- 标题栏按钮 -->
+    <!-- 标题栏按钮：圆形玻璃微光，悬停时亮起来 -->
     <Style x:Key="Caption" TargetType="Button">
         <Setter Property="Width" Value="30"/>
-        <Setter Property="Height" Value="26"/>
+        <Setter Property="Height" Value="28"/>
         <Setter Property="Foreground" Value="{DynamicResource Sub}"/>
         <Setter Property="Cursor" Value="Hand"/>
         <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
@@ -508,7 +548,7 @@
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
                     <Grid Background="Transparent">
-                        <Border x:Name="Bd" Background="{DynamicResource CaptionHover}" CornerRadius="13" Margin="2,0" Opacity="0"/>
+                        <Border x:Name="Bd" Background="{DynamicResource CaptionHover}" CornerRadius="14" Margin="1,0" Opacity="0"/>
                         <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Grid>
                     <ControlTemplate.Triggers>
@@ -545,7 +585,7 @@
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
                     <Grid Background="Transparent">
-                        <Border x:Name="Bd" Background="{DynamicResource CloseHover}" CornerRadius="13" Margin="2,0" Opacity="0"/>
+                        <Border x:Name="Bd" Background="{DynamicResource CloseHover}" CornerRadius="14" Margin="1,0" Opacity="0"/>
                         <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Grid>
                     <ControlTemplate.Triggers>
@@ -584,7 +624,7 @@
             <Setter.Value>
                 <ControlTemplate TargetType="RadioButton">
                     <Grid Background="Transparent">
-                        <Border x:Name="On" CornerRadius="17" Opacity="0"
+                        <Border x:Name="On" CornerRadius="20" Opacity="0"
                                 BorderBrush="{DynamicResource TabEdge}" BorderThickness="1" Margin="2,2"
                                 Effect="{DynamicResource TabShadow}">
                             <Border.Background>
@@ -645,7 +685,7 @@
             <Setter.Value>
                 <ControlTemplate TargetType="RadioButton">
                     <Grid>
-                        <Border x:Name="On" Background="{DynamicResource TabFillA}" CornerRadius="12" Opacity="0"
+                        <Border x:Name="On" Background="{DynamicResource TabFillA}" CornerRadius="10" Opacity="0"
                                 BorderBrush="{DynamicResource TabEdge}" BorderThickness="1"/>
                         <ContentPresenter Margin="12,5" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Grid>
@@ -753,10 +793,10 @@
             <Setter.Value>
                 <ControlTemplate TargetType="TextBox">
                     <Grid>
-                        <Border Background="{DynamicResource SurfaceSoft}" CornerRadius="12"/>
-                        <Border x:Name="Ring" CornerRadius="12" BorderBrush="{DynamicResource Accent}"
+                        <Border Background="{DynamicResource SurfaceSoft}" CornerRadius="10"/>
+                        <Border x:Name="Ring" CornerRadius="10" BorderBrush="{DynamicResource Accent}"
                                 BorderThickness="1.4" Opacity="0"/>
-                        <Border CornerRadius="12" BorderBrush="{DynamicResource ControlEdge}" BorderThickness="1"/>
+                        <Border CornerRadius="10" BorderBrush="{DynamicResource ControlEdge}" BorderThickness="1"/>
                         <ScrollViewer x:Name="PART_ContentHost" Margin="12,0" VerticalAlignment="Center"/>
                     </Grid>
                     <ControlTemplate.Triggers>
@@ -795,10 +835,10 @@
             <Setter.Value>
                 <ControlTemplate TargetType="PasswordBox">
                     <Grid>
-                        <Border Background="{DynamicResource SurfaceSoft}" CornerRadius="12"/>
-                        <Border x:Name="Ring" CornerRadius="12" BorderBrush="{DynamicResource Accent}"
+                        <Border Background="{DynamicResource SurfaceSoft}" CornerRadius="10"/>
+                        <Border x:Name="Ring" CornerRadius="10" BorderBrush="{DynamicResource Accent}"
                                 BorderThickness="1.4" Opacity="0"/>
-                        <Border CornerRadius="12" BorderBrush="{DynamicResource ControlEdge}" BorderThickness="1"/>
+                        <Border CornerRadius="10" BorderBrush="{DynamicResource ControlEdge}" BorderThickness="1"/>
                         <ScrollViewer x:Name="PART_ContentHost" Margin="12,0" VerticalAlignment="Center"/>
                     </Grid>
                     <ControlTemplate.Triggers>
@@ -836,7 +876,7 @@
             <Setter.Value>
                 <ControlTemplate TargetType="CheckBox">
                     <Grid>
-                        <Border x:Name="Bd" Background="{DynamicResource SurfaceSoft}" CornerRadius="9" Opacity="0"/>
+                        <Border x:Name="Bd" Background="{DynamicResource SurfaceSoft}" CornerRadius="10" Opacity="0"/>
                         <ContentPresenter Margin="7,3" VerticalAlignment="Center"/>
                     </Grid>
                     <ControlTemplate.Triggers>
@@ -876,7 +916,7 @@
             <Setter.Value>
                 <ControlTemplate TargetType="ListBoxItem">
                     <Grid Margin="0,1">
-                        <Border x:Name="Sel" Background="{DynamicResource SelFill}" CornerRadius="14" Margin="1,0" Opacity="0"
+                        <Border x:Name="Sel" Background="{DynamicResource SelFill}" CornerRadius="12" Margin="1,0" Opacity="0"
                                 BorderBrush="{DynamicResource SelEdge}" BorderThickness="1"/>
                         <ContentPresenter Margin="12,7"/>
                     </Grid>
@@ -954,7 +994,7 @@
     <!-- 小标签 -->
     <Style x:Key="Tag" TargetType="Border">
         <Setter Property="Background" Value="{DynamicResource SurfaceSoft}"/>
-        <Setter Property="CornerRadius" Value="8"/>
+        <Setter Property="CornerRadius" Value="7"/>
         <Setter Property="Padding" Value="7,2"/>
         <Setter Property="VerticalAlignment" Value="Center"/>
     </Style>

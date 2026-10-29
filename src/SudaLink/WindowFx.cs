@@ -4,55 +4,31 @@ using System.Windows.Interop;
 
 namespace SudaLink;
 
-/// <summary>窗口外观：DWM 圆角、边框、阴影由我们自己控制。</summary>
+/// <summary>
+/// 窗口外观：圆角、光边、投影全部由应用自己在分层窗口上画。
+/// 这里只负责拦住系统想叠上来的那一笔：Win11 会给每个窗口描一圈 1px 边框，
+/// 落在透明留白上就像“应用外面还套了个方框”。
+/// </summary>
 internal static class WindowFx
 {
-    private const int DwmwaWindowCornerPreference = 33;
     private const int DwmwaBorderColor = 34;
 
-    private const int CornerDoNotRound = 1;
-    private const int CornerRound = 2;
-
-    /// <summary>DWMWA_COLOR_DEFAULT：使用系统默认边框色。</summary>
-    private static readonly int DefaultBorder = unchecked((int)0xFFFFFFFF);
+    /// <summary>DWMWA_COLOR_NONE：彻底不画系统边框。</summary>
+    private const int NoBorder = unchecked((int)0xFFFFFFFE);
 
     public static void Attach(Window window)
     {
-        window.SourceInitialized += (_, _) =>
-        {
-            ApplyRounding(window);
-            SuppressSystemBorder(window);
-        };
-        window.StateChanged += (_, _) =>
-        {
-            ApplyRounding(window);
-            SuppressSystemBorder(window);
-        };
+        window.SourceInitialized += (_, _) => SuppressSystemBorder(window);
+        window.StateChanged += (_, _) => SuppressSystemBorder(window);
     }
 
-    private static void ApplyRounding(Window window)
-    {
-        var handle = new WindowInteropHelper(window).Handle;
-        if (handle == IntPtr.Zero)
-            return;
-
-        var preference = window.WindowState == WindowState.Maximized ? CornerDoNotRound : CornerRound;
-        Set(handle, DwmwaWindowCornerPreference, preference);
-    }
-
-    /// <summary>
-    /// Windows 11 会给每个窗口画一圈 1px 的边框（默认浅灰）。本窗口是分层透明窗口、
-    /// 内容又内缩了投影留白，这圈边框就会被孤立在最外层，看起来像"应用外面还套了个方框"。
-    /// 把边框色设成 DWMWA_COLOR_NONE 关掉它，圆角与光边全部由我们自己画。
-    /// </summary>
     private static void SuppressSystemBorder(Window window)
     {
         var handle = new WindowInteropHelper(window).Handle;
         if (handle == IntPtr.Zero)
             return;
 
-        // 不透明窗口：边框、圆角、投影都交回系统，避免自绘边缘出现白点
-        Set(handle, DwmwaBorderColor, DefaultBorder);
+        Set(handle, DwmwaBorderColor, NoBorder);
     }
 
     private static void Set(IntPtr handle, int attribute, int value)
@@ -63,7 +39,7 @@ internal static class WindowFx
         }
         catch (Exception ex) when (ex is DllNotFoundException or EntryPointNotFoundException)
         {
-            // Windows 10 没有这些属性，保持系统默认外观
+            // Windows 10 没有这个属性，保持系统默认外观
         }
     }
 

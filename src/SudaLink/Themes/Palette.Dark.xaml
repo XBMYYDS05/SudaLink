@@ -36,7 +36,7 @@
     <SolidColorBrush x:Key="GlassStrong" Color="#14FFFFFF"/>
     <SolidColorBrush x:Key="GlassMedium" Color="#16FFFFFF"/>
     <SolidColorBrush x:Key="GlassSoft" Color="#10FFFFFF"/>
-    <Color x:Key="GlassTopA">#16FFFFFF</Color>
+    <Color x:Key="GlassTopA">#0AFFFFFF</Color>
     <Color x:Key="GlassTopB">#00FFFFFF</Color>
     <Color x:Key="GlassTopC">#0AFFFFFF</Color>
     <Color x:Key="GlassBottom">#2E000000</Color>
@@ -46,18 +46,28 @@
         <GradientStop Color="#17FFFFFF" Offset="0.76"/>
         <GradientStop Color="#66000000" Offset="1"/>
     </LinearGradientBrush>
+    <!-- 光边分档（GlassPanel 每个面板一份实例，可被指针带着旋转） -->
+    <Color x:Key="EdgeA">#7AFFFFFF</Color>
+    <Color x:Key="EdgeB">#38FFFFFF</Color>
+    <Color x:Key="EdgeC">#17FFFFFF</Color>
+    <Color x:Key="EdgeD">#66000000</Color>
+    <!-- 悬停顶部径向光泽 -->
+    <Color x:Key="GlossTop">#33FFFFFF</Color>
 
     <!-- 控件发丝边 -->
     <LinearGradientBrush x:Key="ControlEdge" StartPoint="0,0" EndPoint="0,1">
         <GradientStop Color="#47FFFFFF" Offset="0"/>
         <GradientStop Color="#33000000" Offset="1"/>
     </LinearGradientBrush>
-    <DropShadowEffect x:Key="PanelShadow" BlurRadius="20" ShadowDepth="5" Direction="270"
-                      Color="#000000" Opacity="0.45" RenderingBias="Performance"/>
-    <DropShadowEffect x:Key="TabShadow" BlurRadius="14" ShadowDepth="2" Direction="270"
-                      Color="#000000" Opacity="0.45"/>
-    <DropShadowEffect x:Key="FloatShadow" BlurRadius="24" ShadowDepth="7" Direction="270"
-                      Color="#000000" Opacity="0.62"/>
+    <!-- 深色下的面板投影只用来"压住"边界，不能当暗角用：
+         纯黑 + 大半径叠在深底上就是一圈脏晕，玻璃反而显得不干净。
+         半径收小、透明度压到几乎看不见，深度感交给边缘光。 -->
+    <DropShadowEffect x:Key="PanelShadow" BlurRadius="9" ShadowDepth="2" Direction="270"
+                      Color="#000000" Opacity="0.18" RenderingBias="Quality"/>
+    <DropShadowEffect x:Key="TabShadow" BlurRadius="7" ShadowDepth="1" Direction="270"
+                      Color="#000000" Opacity="0.20" RenderingBias="Quality"/>
+    <DropShadowEffect x:Key="FloatShadow" BlurRadius="14" ShadowDepth="3" Direction="270"
+                      Color="#000000" Opacity="0.30" RenderingBias="Quality"/>
 
     <Color x:Key="SpecularCore">#2EFFFFFF</Color>
     <Color x:Key="SpecularMid">#0CFFFFFF</Color>
@@ -71,18 +81,25 @@
     <Color x:Key="ChromaC">#1BFF9FC4</Color>
     <!-- 底面透光 -->
     <Color x:Key="InnerGlowBottom">#17FFFFFF</Color>
-    <!-- 整个窗口的外投影与边框 -->
-    <DropShadowEffect x:Key="WindowShadow" BlurRadius="18" ShadowDepth="5" Direction="270"
-                      Color="#000000" Opacity="0.6" RenderingBias="Performance"/>
+    <!-- 整个窗口的外投影与边框（分层窗口自绘） -->
+    <DropShadowEffect x:Key="WindowShadow" BlurRadius="24" ShadowDepth="8" Direction="270"
+                      Color="#000000" Opacity="0.58" RenderingBias="Quality"/>
+    <!-- 窗口外缘光边：上受光、下沉影 -->
+    <LinearGradientBrush x:Key="ShellRim" StartPoint="0.1,0" EndPoint="0.9,1">
+        <GradientStop Color="#66FFFFFF" Offset="0"/>
+        <GradientStop Color="#26FFFFFF" Offset="0.5"/>
+        <GradientStop Color="#52000000" Offset="1"/>
+    </LinearGradientBrush>
     <Color x:Key="WindowEdgeTop">#52FFFFFF</Color>
     <Color x:Key="WindowEdgeBottom">#40000000</Color>
     <SolidColorBrush x:Key="PrimaryEdge" Color="#47FFFFFF"/>
     <Color x:Key="PrimaryGloss">#4DFFFFFF</Color>
 
     <!-- 控件表面 -->
-    <SolidColorBrush x:Key="SurfaceSoft" Color="#1AFFFFFF"/>
+    <SolidColorBrush x:Key="SurfaceSoft" Color="#24FFFFFF"/>
     <SolidColorBrush x:Key="LineSoft" Color="#1FFFFFFF"/>
-    <SolidColorBrush x:Key="BandFill" Color="#1FFFFFFF"/>
+    <!-- 卡内条带（列表头 / 页脚）：深色下用"压暗"分隔，加白会在这个位置堆出一层雾 -->
+    <SolidColorBrush x:Key="BandFill" Color="#1A000000"/>
     <SolidColorBrush x:Key="HoverWhite" Color="#FFFFFF"/>
     <SolidColorBrush x:Key="CaptionHover" Color="#1FFFFFFF"/>
     <SolidColorBrush x:Key="CloseHover" Color="#E6E8364A"/>

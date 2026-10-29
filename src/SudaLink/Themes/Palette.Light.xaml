@@ -32,15 +32,17 @@
     <SolidColorBrush x:Key="DangerEdge" Color="#4DC42B3D"/>
     <SolidColorBrush x:Key="Warn" Color="#B86A10"/>
 
-    <!-- 控件发丝边：上亮下暗，比卡片外缘弱一档，避免白底上出现"双描边" -->
+    <!-- 控件发丝边：上亮下暗，比卡片外缘弱一档，避免白底上出现"双描边"。
+         下边要比卡片沉一点，否则浅色玻璃上的输入框会整块消失。 -->
     <LinearGradientBrush x:Key="ControlEdge" StartPoint="0,0" EndPoint="0,1">
-        <GradientStop Color="#66FFFFFF" Offset="0"/>
-        <GradientStop Color="#14000000" Offset="1"/>
+        <GradientStop Color="#8CFFFFFF" Offset="0"/>
+        <GradientStop Color="#38000000" Offset="1"/>
     </LinearGradientBrush>
-    <!-- 玻璃：面板整体比背景亮一档，配合投影才能从高对比底色上"浮"起来 -->
-    <SolidColorBrush x:Key="GlassStrong" Color="#26FFFFFF"/>
-    <SolidColorBrush x:Key="GlassMedium" Color="#2EFFFFFF"/>
-    <SolidColorBrush x:Key="GlassSoft" Color="#24FFFFFF"/>
+    <!-- 玻璃：面板整体比背景亮一档，配合投影才能从高对比底色上"浮"起来。
+         但白要薄 —— 染色一厚就成磨砂塑料，背后的色团全被糊掉。 -->
+    <SolidColorBrush x:Key="GlassStrong" Color="#30FFFFFF"/>
+    <SolidColorBrush x:Key="GlassMedium" Color="#3AFFFFFF"/>
+    <SolidColorBrush x:Key="GlassSoft" Color="#2EFFFFFF"/>
     <Color x:Key="GlassTopA">#1FFFFFFF</Color>
     <Color x:Key="GlassTopB">#0AFFFFFF</Color>
     <Color x:Key="GlassTopC">#0AFFFFFF</Color>
@@ -51,12 +53,19 @@
         <GradientStop Color="#4DFFFFFF" Offset="0.74"/>
         <GradientStop Color="#380A1424" Offset="1"/>
     </LinearGradientBrush>
-    <DropShadowEffect x:Key="PanelShadow" BlurRadius="12" ShadowDepth="2" Direction="270"
-                      Color="#1B2C4A" Opacity="0.16" RenderingBias="Performance"/>
-    <DropShadowEffect x:Key="TabShadow" BlurRadius="12" ShadowDepth="2" Direction="270"
-                      Color="#1B2C4A" Opacity="0.14" RenderingBias="Performance"/>
-    <DropShadowEffect x:Key="FloatShadow" BlurRadius="18" ShadowDepth="5" Direction="270"
-                      Color="#1B2C4A" Opacity="0.18" RenderingBias="Performance"/>
+    <!-- 光边分档（GlassPanel 每个面板一份实例，可被指针带着旋转） -->
+    <Color x:Key="EdgeA">#FFFFFFFF</Color>
+    <Color x:Key="EdgeB">#C4FFFFFF</Color>
+    <Color x:Key="EdgeC">#4DFFFFFF</Color>
+    <Color x:Key="EdgeD">#380A1424</Color>
+    <!-- 悬停顶部径向光泽 -->
+    <Color x:Key="GlossTop">#2BFFFFFF</Color>
+    <DropShadowEffect x:Key="PanelShadow" BlurRadius="10" ShadowDepth="2" Direction="270"
+                      Color="#1B2C4A" Opacity="0.14" RenderingBias="Quality"/>
+    <DropShadowEffect x:Key="TabShadow" BlurRadius="10" ShadowDepth="2" Direction="270"
+                      Color="#1B2C4A" Opacity="0.13" RenderingBias="Quality"/>
+    <DropShadowEffect x:Key="FloatShadow" BlurRadius="14" ShadowDepth="3" Direction="270"
+                      Color="#1B2C4A" Opacity="0.16" RenderingBias="Quality"/>
 
     <Color x:Key="SpecularCore">#4DFFFFFF</Color>
     <Color x:Key="SpecularMid">#14FFFFFF</Color>
@@ -70,18 +79,24 @@
     <Color x:Key="ChromaC">#12FF9FC4</Color>
     <!-- 底面透光 -->
     <Color x:Key="InnerGlowBottom">#3DFFFFFF</Color>
-    <!-- 整个窗口的外投影与边框 -->
-    <DropShadowEffect x:Key="WindowShadow" BlurRadius="16" ShadowDepth="4" Direction="270"
-                      Color="#0E1E36" Opacity="0.34" RenderingBias="Performance"/>
+    <!-- 整个窗口的外投影与边框（分层窗口自绘） -->
+    <DropShadowEffect x:Key="WindowShadow" BlurRadius="22" ShadowDepth="6" Direction="270"
+                      Color="#0E1E36" Opacity="0.3" RenderingBias="Quality"/>
+    <!-- 窗口外缘光边：上受光、下沉影 -->
+    <LinearGradientBrush x:Key="ShellRim" StartPoint="0.1,0" EndPoint="0.9,1">
+        <GradientStop Color="#C8FFFFFF" Offset="0"/>
+        <GradientStop Color="#47FFFFFF" Offset="0.5"/>
+        <GradientStop Color="#140A1424" Offset="1"/>
+    </LinearGradientBrush>
     <Color x:Key="WindowEdgeTop">#B3FFFFFF</Color>
     <Color x:Key="WindowEdgeBottom">#120B1A33</Color>
     <SolidColorBrush x:Key="PrimaryEdge" Color="#66FFFFFF"/>
     <Color x:Key="PrimaryGloss">#73FFFFFF</Color>
 
     <!-- 控件表面 -->
-    <SolidColorBrush x:Key="SurfaceSoft" Color="#4DFFFFFF"/>
+    <SolidColorBrush x:Key="SurfaceSoft" Color="#5EFFFFFF"/>
     <SolidColorBrush x:Key="LineSoft" Color="#1F0B1A33"/>
-    <SolidColorBrush x:Key="BandFill" Color="#40FFFFFF"/>
+    <SolidColorBrush x:Key="BandFill" Color="#45FFFFFF"/>
     <SolidColorBrush x:Key="HoverWhite" Color="#FFFFFF"/>
     <SolidColorBrush x:Key="CaptionHover" Color="#14000000"/>
     <SolidColorBrush x:Key="CloseHover" Color="#D93A4B"/>
@@ -111,5 +126,6 @@
     <!-- 玻璃底衬（壁纸）：必须有结构，玻璃才“透”得出来 -->
     <ImageBrush x:Key="BackdropBrush" ImageSource="pack://application:,,,/Assets/backdrop-light.jpg"
                 Stretch="UniformToFill"/>
-    <SolidColorBrush x:Key="BackdropVeil" Color="#00FFFFFF"/>
+    <!-- 一层极淡的白纱压住壁纸的彩度：玻璃要透，但文字得先读得清 -->
+    <SolidColorBrush x:Key="BackdropVeil" Color="#14FFFFFF"/>
 </ResourceDictionary>

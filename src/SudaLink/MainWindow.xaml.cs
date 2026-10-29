@@ -64,6 +64,9 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         WindowFx.Attach(this);
+        // 窗口壳：尺寸变化时重裁圆角（壁纸在四角永远是圆的）
+        ShellBody.SizeChanged += (_, _) => UpdateShellClip();
+        Loaded += (_, _) => UpdateShellClip();
         // 在 Win32 层拦截关闭，避免 WPF Closing/Closed 链路里任何一处抢先 Shutdown
         SourceInitialized += (_, _) =>
         {
@@ -308,7 +311,8 @@ public partial class MainWindow : Window
 
     private void SaveSnapshot(string path)
     {
-        if (Content is not FrameworkElement root || root.ActualWidth < 1)
+        var root = ShellBody;
+        if (root.ActualWidth < 1 || root.ActualHeight < 1)
             return;
 
         const double scale = 2.0;
@@ -318,7 +322,7 @@ public partial class MainWindow : Window
             RTB_DPI * scale, RTB_DPI * scale, PixelFormats.Pbgra32);
         bitmap.Render(root);
 
-        // 真机窗口由 DWM 圆角（8 逻辑像素），截图也裁出同样的圆角，别让文档里的窗口是方的
+        // 真机窗口是自绘 20 逻辑像素圆角，截图也裁出同样的圆角
         var visual = new DrawingVisual();
         using (var dc = visual.RenderOpen())
         {
@@ -341,8 +345,44 @@ public partial class MainWindow : Window
 
     private const double RTB_DPI = 96;
 
-    /// <summary>窗口四角的圆角半径（与 Windows 11 DWM 圆角一致）。</summary>
-    private const double WindowCornerRadius = 8.0;
+    /// <summary>窗口四角的圆角半径（自绘，分层窗口不再吃 DWM 的 8px）。</summary>
+    private const double WindowCornerRadius = 20.0;
+
+    /// <summary>窗口本体四周为投影留出的空白；最大化时收掉。</summary>
+    private static readonly Thickness ShellMargin = new(14, 10, 14, 20);
+
+    /// <summary>最大化时：去圆角、收留白、藏投影 —— 满屏就是内容本身。</summary>
+    private void OnWindowStateChanged(object? sender, EventArgs e)
+    {
+        var maximized = WindowState == WindowState.Maximized;
+        var corner = new CornerRadius(maximized ? 0.0 : WindowCornerRadius);
+
+        ShadowHost.Visibility = maximized ? Visibility.Collapsed : Visibility.Visible;
+        foreach (var border in new[] { ShadowHost, Shell, ShellRim })
+        {
+            border.Margin = maximized ? default : ShellMargin;
+            border.CornerRadius = corner;
+        }
+
+        UpdateShellClip();
+    }
+
+    /// <summary>窗口内容按圆角裁剪，壁纸才不会在四角露方角。尺寸一变就要重裁。</summary>
+    private void UpdateShellClip()
+    {
+        if (ShellBody.ActualWidth < 1 || ShellBody.ActualHeight < 1)
+            return;
+
+        if (WindowState == WindowState.Maximized)
+        {
+            ShellBody.Clip = null;
+            return;
+        }
+
+        ShellBody.Clip = new RectangleGeometry(
+            new Rect(0, 0, ShellBody.ActualWidth, ShellBody.ActualHeight),
+            WindowCornerRadius, WindowCornerRadius);
+    }
 
     /// <summary>页面切换：淡入并轻微上浮，避免生硬跳转。</summary>
     private void AnimateIn(FrameworkElement element)
@@ -789,8 +829,6 @@ public partial class MainWindow : Window
     private void ClearLogs(object sender, RoutedEventArgs e) => _logs.Clear();
 
     // ---------- 窗口 ----------
-
-    private void OnWindowStateChanged(object sender, EventArgs e) { }
 
     private void MinimizeWindow(object sender, RoutedEventArgs e) => CollapseToBackground();
 

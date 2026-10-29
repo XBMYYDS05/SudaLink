@@ -1,7 +1,8 @@
 # SudaLink · 苏大校园网自动登录助手
 
 > 给苏州大学校园网（Dr.COM / eportal 网关）用的自动登录小工具。
-> 一个 78 MB 的自包含单文件 exe，双击即可用；界面是手写的「液态玻璃」材质。
+> 一个 78 MB 的自包含单文件 exe，双击即可用；界面是手写的「液态玻璃」材质，
+> 圆角、追光边与压按弹性都向 GitHub 上的 [liquid-glass-react](https://github.com/rdev/liquid-glass-react) 看齐。
 
 作者：**溪边木**
 
@@ -198,7 +199,7 @@ icacls "D:\SUDANET" /setintegritylevel "(OI)(CI)Medium" /T /C /Q
 
 ## 版本记录
 
-从 2.0 重写到 4.5，一共 14 个版本，每一次的动机、实现和踩坑都在
+从 2.0 重写到 4.8，一共 16 个版本，每一次的动机、实现和踩坑都在
 [`docs/versions/`](docs/versions/) 里，索引见 [CHANGELOG.md](CHANGELOG.md)。
 
 ---

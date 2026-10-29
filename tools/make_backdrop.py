@@ -6,7 +6,7 @@
 
 import math
 import random
-from PIL import Image, ImageDraw, ImageFilter
+from PIL import Image, ImageDraw, ImageEnhance, ImageFilter
 
 W, H = 900, 1300
 random.seed(7)
@@ -87,13 +87,19 @@ def rings(size, light, alpha):
     return layer.filter(ImageFilter.GaussianBlur(1.6))
 
 
-def build(top, bottom, blobs, light_alpha, out):
+def build(top, bottom, blobs, light_alpha, out, sat=1.0, wash=0.0):
     base = vertical(W, H, top, bottom).convert("RGBA")
     for color, alpha, center, radius in blobs:
         base = Image.alpha_composite(base, blob((W, H), color, alpha, center, radius))
     base = Image.alpha_composite(base, streaks((W, H), (255, 255, 255), light_alpha))
     base = Image.alpha_composite(base, rings((W, H), (255, 255, 255) if out.endswith('light.jpg') else (190, 225, 255), 72 if out.endswith('light.jpg') else 42))
     img = base.convert("RGB")
+    # 降饱和：色团是给玻璃提供"可折射的结构"，不是来抢主角的。
+    # 饱和度一高，玻璃面板怎么调都像糊在彩虹上，文字也跟着糊。
+    if sat != 1.0:
+        img = ImageEnhance.Color(img).enhance(sat)
+    if wash > 0:
+        img = Image.blend(img, Image.new("RGB", img.size, (255, 255, 255)), wash)
     img = grain(img, 4 if out.endswith("light.jpg") else 5)
     img = vignette(img, 0.12 if out.endswith("light.jpg") else 0.3)
     img.save(out, quality=94, subsampling=1)
@@ -111,6 +117,8 @@ build(
     ],
     26,
     r"D:\SUDANET\src\SudaLink\Assets\backdrop-light.jpg",
+    sat=0.58,
+    wash=0.10,
 )
 
 build(

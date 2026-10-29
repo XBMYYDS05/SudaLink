@@ -44,7 +44,7 @@ public class GlassPanel : ContentControl
     /// <summary>高斯模糊半径。0 表示关闭（回落为纯半透明面板）。</summary>
     public static readonly DependencyProperty BlurProperty = DependencyProperty.Register(
         nameof(Blur), typeof(double), typeof(GlassPanel),
-        new PropertyMetadata(7.0, (d, _) =>
+        new PropertyMetadata(4.5, (d, _) =>
         {
             var panel = (GlassPanel)d;
             panel.ApplyBlur();
@@ -71,7 +71,7 @@ public class GlassPanel : ContentControl
     /// </summary>
     public static readonly DependencyProperty BezelProperty = DependencyProperty.Register(
         nameof(Bezel), typeof(double), typeof(GlassPanel),
-        new PropertyMetadata(14.0, (d, _) =>
+        new PropertyMetadata(9.0, (d, _) =>
         {
             var panel = (GlassPanel)d;
             panel.ApplyBezel();
@@ -83,10 +83,21 @@ public class GlassPanel : ContentControl
         nameof(Lens), typeof(double), typeof(GlassPanel),
         new PropertyMetadata(2.4, (d, _) => ((GlassPanel)d).UpdateFrost(force: true)));
 
+    /// <summary>
+    /// 镜圈上的棱镜色散强度（0 关闭，1 全强度）。liquid-glass-react 用 RGB 通道
+    /// 分离做边缘分色；WPF 没有通道混合，这里用一道只覆盖镜圈的冷→暖渐变模拟。
+    /// </summary>
+    public static readonly DependencyProperty ChromaProperty = DependencyProperty.Register(
+        nameof(Chroma), typeof(double), typeof(GlassPanel),
+        new PropertyMetadata(1.0, (d, _) => ((GlassPanel)d).ApplyBezel()));
+
     private Grid? _root;
     private Border? _lens;
-    private Border? _bezelTint;
+    private Border? _chroma;
     private Border? _frost;
+    private Border? _edge;
+    private RotateTransform? _edgeSpin;
+    private Border? _topGloss;
     private ImageBrush? _frostBrush;
     private ImageBrush? _lensBrush;
     private Rect? _frostViewbox;
@@ -168,6 +179,13 @@ public class GlassPanel : ContentControl
         set => SetValue(LensProperty, value);
     }
 
+    /// <summary>棱镜色散强度。</summary>
+    public double Chroma
+    {
+        get => (double)GetValue(ChromaProperty);
+        set => SetValue(ChromaProperty, value);
+    }
+
     /// <summary>模糊会把边缘吃掉，所以采样区域要外扩这么多，再用圆角裁掉。</summary>
     private double Bleed => Math.Ceiling(Blur * 2.2) + 6;
 
@@ -177,8 +195,11 @@ public class GlassPanel : ContentControl
 
         _root = GetTemplateChild("PART_Root") as Grid;
         _lens = GetTemplateChild("PART_Lens") as Border;
-        _bezelTint = GetTemplateChild("PART_BezelTint") as Border;
+        _chroma = GetTemplateChild("PART_Chroma") as Border;
         _frost = GetTemplateChild("PART_Frost") as Border;
+        _edge = GetTemplateChild("PART_Edge") as Border;
+        _edgeSpin = GetTemplateChild("PART_EdgeSpin") as RotateTransform;
+        _topGloss = GetTemplateChild("PART_TopGloss") as Border;
         _specular = GetTemplateChild("PART_Specular") as FrameworkElement;
         _shift = GetTemplateChild("PART_SpecularShift") as TranslateTransform;
         _glow = GetTemplateChild("PART_Glow") as Ellipse;
@@ -223,7 +244,9 @@ public class GlassPanel : ContentControl
             {
                 Radius = Blur,
                 KernelType = KernelType.Gaussian,
-                RenderingBias = RenderingBias.Performance
+                // Performance 档是近似方框模糊，半径一小就会把背景糊成一片"塑料"，
+                // 玻璃要"通透"就得让背景的结构还在，所以走 Quality。
+                RenderingBias = RenderingBias.Quality
             };
     }
 
@@ -346,13 +369,13 @@ public class GlassPanel : ContentControl
     /// <summary>镜圈宽度决定棱镜色散那一圈的粗细。</summary>
     private void ApplyBezel()
     {
-        if (_bezelTint is null)
+        if (_chroma is null)
             return;
 
         var bezel = CurrentBezel();
-        _bezelTint.BorderThickness = new Thickness(bezel);
-        _bezelTint.CornerRadius = CornerRadius;
-        _bezelTint.Opacity = bezel < 1 ? 0 : 1;
+        _chroma.BorderThickness = new Thickness(bezel);
+        _chroma.CornerRadius = CornerRadius;
+        _chroma.Opacity = bezel < 1 ? 0 : Math.Clamp(Chroma, 0, 1);
     }
 
     /// <summary>
@@ -421,13 +444,17 @@ public class GlassPanel : ContentControl
 
         var point = e.GetPosition(this);
         MoveTo(point.X, point.Y, 240);
+        UpdateEdgeSpin(point);
     }
 
     protected override void OnMouseEnter(MouseEventArgs e)
     {
         base.OnMouseEnter(e);
         if (Specular)
+        {
             FadeSpecular(0.55, 260);
+            FadeGloss(1, 260);
+        }
     }
 
     protected override void OnMouseLeave(MouseEventArgs e)
@@ -435,6 +462,61 @@ public class GlassPanel : ContentControl
         base.OnMouseLeave(e);
         MoveTo(ActualWidth * 0.42, ActualHeight * 0.52, 560);
         FadeSpecular(0, 560);
+        FadeGloss(0, 400);
+        ResetEdgeSpin();
+    }
+
+    /// <summary>
+    /// 光边转向指针：liquid-glass-react 的边缘高光会“承接”环境光——
+    /// 指针在哪一侧，亮边就转向哪一侧，玻璃看起来是活的。
+    /// </summary>
+    private void UpdateEdgeSpin(Point point)
+    {
+        if (_edgeSpin is null || ActualWidth < 2 || ActualHeight < 2)
+            return;
+
+        var dx = point.X - ActualWidth / 2;
+        var dy = point.Y - ActualHeight / 2;
+        if (dx * dx + dy * dy < 64)
+            return; // 指针在正中心，方向没有意义
+
+        var theta = Math.Atan2(dy, dx) * 180.0 / Math.PI;
+        var target = theta + 135; // 梯度亮端基准在左上（-135°），转到指针方向
+        var current = _edgeSpin.Angle;
+        var delta = ((target - current + 540) % 360) - 180; // 走最短的弧
+        if (Math.Abs(delta) < 2)
+            return;
+
+        _edgeSpin.BeginAnimation(RotateTransform.AngleProperty,
+            new DoubleAnimation(current + delta, TimeSpan.FromMilliseconds(340))
+            {
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+            });
+    }
+
+    private void ResetEdgeSpin()
+    {
+        if (_edgeSpin is null)
+            return;
+
+        _edgeSpin.BeginAnimation(RotateTransform.AngleProperty,
+            new DoubleAnimation(0, TimeSpan.FromMilliseconds(560))
+            {
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+            });
+    }
+
+    /// <summary>悬停时顶边漫进来一层很淡的径向白光（hover radial highlight）。</summary>
+    private void FadeGloss(double target, int milliseconds)
+    {
+        if (_topGloss is null)
+            return;
+
+        _topGloss.BeginAnimation(OpacityProperty,
+            new DoubleAnimation(target, TimeSpan.FromMilliseconds(milliseconds))
+            {
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+            });
     }
 
     /// <summary>镜面只在指针悬停时浮现，静态时保持完全干净。</summary>

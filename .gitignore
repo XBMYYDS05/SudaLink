@@ -8,6 +8,7 @@ publish/
 
 # 发布出来的单文件程序
 *.exe
+*.exe.bak-*
 *.pdb
 *.dll
 
@@ -25,6 +26,9 @@ CampusNet(2).exe
 
 # 交付包（给上传用的整理目录，含 exe/bundle）
 deliver/
+
+# 本地杂项
+@AutomationLog.txt
 
 # 系统
 .DS_Store
