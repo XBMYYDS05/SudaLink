@@ -69,7 +69,7 @@ WPF 没有系统级模糊可用（这台机器上 `SetWindowCompositionAttribute
 需要 .NET 8 SDK（Windows）。
 
 ```bash
-git clone <this-repo>
+git clone https://github.com/XBMYYDS05/SudaLink.git
 cd SudaLink
 dotnet build src/SudaLink/SudaLink.csproj -c Release
 dotnet run --project src/SudaLink/SudaLink.csproj
