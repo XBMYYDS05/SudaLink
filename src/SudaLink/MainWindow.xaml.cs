@@ -64,8 +64,6 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         WindowFx.Attach(this);
-        Shell.SizeChanged += (_, _) => UpdateFrameClip();
-        UpdateFrame();
         // 在 Win32 层拦截关闭，避免 WPF Closing/Closed 链路里任何一处抢先 Shutdown
         SourceInitialized += (_, _) =>
         {
@@ -792,30 +790,7 @@ public partial class MainWindow : Window
 
     // ---------- 窗口 ----------
 
-    /// <summary>窗口圆角。比内部卡片的 22~26 略小，视觉上才像"外壳包住内容"。</summary>
-    private const double WindowRadius = 24;
-
-    private void OnWindowStateChanged(object sender, EventArgs e) => UpdateFrame();
-
-    private void UpdateFrame()
-    {
-        UpdateFrameClip();
-    }
-
-    /// <summary>把内容裁成圆角。WPF 的 Border 不会替子元素裁剪，只能自己上几何 Clip。</summary>
-    private void UpdateFrameClip()
-    {
-        if (Shell.ActualWidth < 1 || Shell.ActualHeight < 1)
-        {
-            Shell.Clip = null;
-            return;
-        }
-
-        var radius = WindowState == WindowState.Maximized ? 0 : WindowRadius;
-        Shell.Clip = radius > 0
-            ? new RectangleGeometry(new Rect(0, 0, Shell.ActualWidth, Shell.ActualHeight), radius, radius)
-            : null;
-    }
+    private void OnWindowStateChanged(object sender, EventArgs e) { }
 
     private void MinimizeWindow(object sender, RoutedEventArgs e) => CollapseToBackground();
 

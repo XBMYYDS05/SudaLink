@@ -9,13 +9,12 @@ internal static class WindowFx
 {
     private const int DwmwaWindowCornerPreference = 33;
     private const int DwmwaBorderColor = 34;
-    private const int DwmwaNcRenderingPolicy = 2;
 
     private const int CornerDoNotRound = 1;
     private const int CornerRound = 2;
 
-    /// <summary>DWMWA_COLOR_NONE：让 DWM 不要画那圈 1px 边框。</summary>
-    private static readonly int NoBorder = unchecked((int)0xFFFFFFFE);
+    /// <summary>DWMWA_COLOR_DEFAULT：使用系统默认边框色。</summary>
+    private static readonly int DefaultBorder = unchecked((int)0xFFFFFFFF);
 
     public static void Attach(Window window)
     {
@@ -52,9 +51,8 @@ internal static class WindowFx
         if (handle == IntPtr.Zero)
             return;
 
-        Set(handle, DwmwaBorderColor, NoBorder);
-        // 关掉 DWM 给窗口画的那圈方形投影：本窗口是分层透明窗口，圆角与阴影全由自己画
-        Set(handle, DwmwaNcRenderingPolicy, 1);
+        // 不透明窗口：边框、圆角、投影都交回系统，避免自绘边缘出现白点
+        Set(handle, DwmwaBorderColor, DefaultBorder);
     }
 
     private static void Set(IntPtr handle, int attribute, int value)

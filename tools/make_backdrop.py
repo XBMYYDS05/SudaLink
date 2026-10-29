@@ -71,11 +71,28 @@ def vignette(img, strength=0.16):
     return Image.composite(img, Image.blend(img, dark, strength), mask)
 
 
+
+def rings(size, light, alpha):
+    """几道很淡的等距圆环。玻璃的镜圈要把背景放大几个百分点，
+    没有这种"有方向的细节"就看不出折射——纯色团放大了还是纯色。"""
+    layer = Image.new("RGBA", size, (0, 0, 0, 0))
+    d = ImageDraw.Draw(layer)
+    for cx, cy, radius, width in (
+        (700, 430, 210, 3), (700, 430, 252, 2), (700, 430, 300, 3),
+        (180, 980, 190, 3), (180, 980, 238, 2),
+        (520, 760, 150, 2),
+    ):
+        d.ellipse([cx - radius, cy - radius, cx + radius, cy + radius],
+                  outline=light + (int(alpha),), width=width)
+    return layer.filter(ImageFilter.GaussianBlur(1.6))
+
+
 def build(top, bottom, blobs, light_alpha, out):
     base = vertical(W, H, top, bottom).convert("RGBA")
     for color, alpha, center, radius in blobs:
         base = Image.alpha_composite(base, blob((W, H), color, alpha, center, radius))
     base = Image.alpha_composite(base, streaks((W, H), (255, 255, 255), light_alpha))
+    base = Image.alpha_composite(base, rings((W, H), (255, 255, 255) if out.endswith('light.jpg') else (190, 225, 255), 72 if out.endswith('light.jpg') else 42))
     img = base.convert("RGB")
     img = grain(img, 4 if out.endswith("light.jpg") else 5)
     img = vignette(img, 0.12 if out.endswith("light.jpg") else 0.3)

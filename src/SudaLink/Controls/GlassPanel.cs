@@ -44,7 +44,7 @@ public class GlassPanel : ContentControl
     /// <summary>高斯模糊半径。0 表示关闭（回落为纯半透明面板）。</summary>
     public static readonly DependencyProperty BlurProperty = DependencyProperty.Register(
         nameof(Blur), typeof(double), typeof(GlassPanel),
-        new PropertyMetadata(10.0, (d, _) =>
+        new PropertyMetadata(7.0, (d, _) =>
         {
             var panel = (GlassPanel)d;
             panel.ApplyBlur();
@@ -57,7 +57,7 @@ public class GlassPanel : ContentControl
     /// </summary>
     public static readonly DependencyProperty RefractionProperty = DependencyProperty.Register(
         nameof(Refraction), typeof(double), typeof(GlassPanel),
-        new PropertyMetadata(1.7, (d, _) => ((GlassPanel)d).UpdateFrost(force: true)));
+        new PropertyMetadata(2.4, (d, _) => ((GlassPanel)d).UpdateFrost(force: true)));
 
     /// <summary>面板内的语义辉光色；透明色表示不发光。</summary>
     public static readonly DependencyProperty GlowProperty = DependencyProperty.Register(
@@ -71,7 +71,7 @@ public class GlassPanel : ContentControl
     /// </summary>
     public static readonly DependencyProperty BezelProperty = DependencyProperty.Register(
         nameof(Bezel), typeof(double), typeof(GlassPanel),
-        new PropertyMetadata(9.0, (d, _) =>
+        new PropertyMetadata(14.0, (d, _) =>
         {
             var panel = (GlassPanel)d;
             panel.ApplyBezel();
@@ -81,7 +81,7 @@ public class GlassPanel : ContentControl
     /// <summary>镜圈放大倍率强度，0.6 含蓄、1.6 夸张。</summary>
     public static readonly DependencyProperty LensProperty = DependencyProperty.Register(
         nameof(Lens), typeof(double), typeof(GlassPanel),
-        new PropertyMetadata(1.7, (d, _) => ((GlassPanel)d).UpdateFrost(force: true)));
+        new PropertyMetadata(2.4, (d, _) => ((GlassPanel)d).UpdateFrost(force: true)));
 
     private Grid? _root;
     private Border? _lens;
@@ -285,7 +285,7 @@ public class GlassPanel : ContentControl
         var refraction = Math.Clamp(Refraction, 0.9, 1.0);
         inner = Shrink(inner, 1 - refraction);
         // 镜圈再放大一点，边缘的弯曲幅度就出来了
-        lens = Shrink(lens, Math.Clamp(Lens, 0, 2) * 0.055);
+        lens = Shrink(lens, Math.Clamp(Lens, 0, 3) * 0.16);
 
         if (_frostBrush is null || !ReferenceEquals(_frostBrush.ImageSource, source))
         {

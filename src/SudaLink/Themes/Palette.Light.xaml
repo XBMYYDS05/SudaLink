@@ -38,11 +38,11 @@
         <GradientStop Color="#14000000" Offset="1"/>
     </LinearGradientBrush>
     <!-- 玻璃：面板整体比背景亮一档，配合投影才能从高对比底色上"浮"起来 -->
-    <SolidColorBrush x:Key="GlassStrong" Color="#33FFFFFF"/>
-    <SolidColorBrush x:Key="GlassMedium" Color="#3DFFFFFF"/>
+    <SolidColorBrush x:Key="GlassStrong" Color="#26FFFFFF"/>
+    <SolidColorBrush x:Key="GlassMedium" Color="#2EFFFFFF"/>
     <SolidColorBrush x:Key="GlassSoft" Color="#24FFFFFF"/>
-    <Color x:Key="GlassTopA">#2EFFFFFF</Color>
-    <Color x:Key="GlassTopB">#14FFFFFF</Color>
+    <Color x:Key="GlassTopA">#1FFFFFFF</Color>
+    <Color x:Key="GlassTopB">#0AFFFFFF</Color>
     <Color x:Key="GlassTopC">#0AFFFFFF</Color>
     <Color x:Key="GlassBottom">#12000000</Color>
     <LinearGradientBrush x:Key="Edge" StartPoint="0,0" EndPoint="0.9,1">
@@ -51,8 +51,8 @@
         <GradientStop Color="#4DFFFFFF" Offset="0.74"/>
         <GradientStop Color="#380A1424" Offset="1"/>
     </LinearGradientBrush>
-    <DropShadowEffect x:Key="PanelShadow" BlurRadius="16" ShadowDepth="3" Direction="270"
-                      Color="#1B2C4A" Opacity="0.2" RenderingBias="Performance"/>
+    <DropShadowEffect x:Key="PanelShadow" BlurRadius="12" ShadowDepth="2" Direction="270"
+                      Color="#1B2C4A" Opacity="0.16" RenderingBias="Performance"/>
     <DropShadowEffect x:Key="TabShadow" BlurRadius="12" ShadowDepth="2" Direction="270"
                       Color="#1B2C4A" Opacity="0.14" RenderingBias="Performance"/>
     <DropShadowEffect x:Key="FloatShadow" BlurRadius="18" ShadowDepth="5" Direction="270"

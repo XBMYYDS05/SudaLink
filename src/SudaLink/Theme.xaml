@@ -71,27 +71,25 @@
                             Effect="{TemplateBinding Shadow}">
                         <Border CornerRadius="{TemplateBinding CornerRadius}">
                             <Grid x:Name="PART_Root">
-                                <!-- 镜圈：整块面板范围，取样被放大过；内芯随后盖住中间，
-                                     只留下边缘那一圈"折进来的画面" -->
+                                <!-- 镜圈：整块范围，取样被放大过；内芯盖住中间，只留边缘那一圈 -->
                                 <Border x:Name="PART_Lens"/>
 
                                 <!-- 内芯：1:1 取背景再高斯模糊 -->
                                 <Border x:Name="PART_Frost"/>
 
-                                <!-- 棱镜色散：只画在镜圈那一条上，冷色在上、暖色在下 -->
-                                <Border x:Name="PART_BezelTint" IsHitTestVisible="False" Opacity="0">
-                                    <Border.BorderBrush>
-                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0.85,1">
-                                            <GradientStop Color="{DynamicResource ChromaA}" Offset="0"/>
-                                            <GradientStop Color="{DynamicResource ChromaB}" Offset="0.42"/>
-                                            <GradientStop Color="{DynamicResource ChromaC}" Offset="0.78"/>
-                                            <GradientStop Color="{DynamicResource ChromaA}" Offset="1"/>
-                                        </LinearGradientBrush>
-                                    </Border.BorderBrush>
-                                </Border>
-
-                                <!-- 染色：极薄一层，负责把背景压成“玻璃色”而不是盖住它 -->
+                                <!-- 染色：一层很薄的色，负责定调，不盖住背景 -->
                                 <Border Background="{TemplateBinding Fill}"/>
+
+                                <!-- 顶面受光：一条自上而下衰减的白，玻璃的边缘才立得住 -->
+                                <Border>
+                                    <Border.Background>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                            <GradientStop Color="{DynamicResource GlassTopA}" Offset="0"/>
+                                            <GradientStop Color="{DynamicResource GlassTopB}" Offset="0.35"/>
+                                            <GradientStop Color="#00FFFFFF" Offset="1"/>
+                                        </LinearGradientBrush>
+                                    </Border.Background>
+                                </Border>
 
                                 <!-- 状态辉光：语义色从右上角漫进来 -->
                                 <Canvas ClipToBounds="True" IsHitTestVisible="False">
@@ -99,36 +97,13 @@
                                              Canvas.Left="60" Canvas.Top="-140" Opacity="0"/>
                                 </Canvas>
 
-                                <!-- 顶面受光：只做上三分之一，底部不加任何暗色 -->
-                                <Border>
-                                    <Border.Background>
-                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                                            <GradientStop Color="{DynamicResource GlassTopA}" Offset="0"/>
-                                            <GradientStop Color="{DynamicResource GlassTopB}" Offset="0.24"/>
-                                            <GradientStop Color="{DynamicResource GlassTopC}" Offset="0.58"/>
-                                            <GradientStop Color="#00FFFFFF" Offset="1"/>
-                                        </LinearGradientBrush>
-                                    </Border.Background>
-                                </Border>
-
-                                <!-- 底面透光：厚度感的另一半，只在最下面几像素泛白 -->
-                                <Border IsHitTestVisible="False">
-                                    <Border.Background>
-                                        <LinearGradientBrush StartPoint="0,1" EndPoint="0,0.78">
-                                            <GradientStop Color="{DynamicResource InnerGlowBottom}" Offset="0"/>
-                                            <GradientStop Color="#00FFFFFF" Offset="1"/>
-                                        </LinearGradientBrush>
-                                    </Border.Background>
-                                </Border>
-
-                                <!-- 镜面高光：跟随指针 -->
+                                <!-- 镜面高光：跟随指针，很淡 -->
                                 <Canvas ClipToBounds="True" IsHitTestVisible="False">
                                     <Ellipse x:Name="PART_Specular" Width="300" Height="300"
                                              Canvas.Left="0" Canvas.Top="0" Opacity="0" IsHitTestVisible="False">
                                         <Ellipse.Fill>
                                             <RadialGradientBrush>
                                                 <GradientStop Color="{DynamicResource SpecularCore}" Offset="0"/>
-                                                <GradientStop Color="{DynamicResource SpecularMid}" Offset="0.5"/>
                                                 <GradientStop Color="#00FFFFFF" Offset="1"/>
                                             </RadialGradientBrush>
                                         </Ellipse.Fill>
@@ -138,33 +113,9 @@
                                     </Ellipse>
                                 </Canvas>
 
-                                <!-- 玻璃厚度：外缘受光、内缘再走一道 -->
+                                <!-- 玻璃厚度：就一道内描边，上亮下暗 -->
                                 <Border CornerRadius="{TemplateBinding CornerRadius}"
                                         BorderBrush="{DynamicResource Edge}" BorderThickness="1"/>
-
-                                <Border CornerRadius="{TemplateBinding CornerRadius, Converter={StaticResource RadiusInset}}"
-                                        Margin="2.5" BorderThickness="1" IsHitTestVisible="False">
-                                    <Border.BorderBrush>
-                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0.62,1">
-                                            <GradientStop Color="{DynamicResource RimInnerA}" Offset="0"/>
-                                            <GradientStop Color="#00FFFFFF" Offset="0.38"/>
-                                            <GradientStop Color="#00FFFFFF" Offset="0.72"/>
-                                            <GradientStop Color="{DynamicResource RimInnerB}" Offset="1"/>
-                                        </LinearGradientBrush>
-                                    </Border.BorderBrush>
-                                </Border>
-
-                                <!-- 顶部刃口高光 -->
-                                <Border Height="1" VerticalAlignment="Top" Margin="14,0">
-                                    <Border.Background>
-                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                                            <GradientStop Color="#00FFFFFF" Offset="0"/>
-                                            <GradientStop Color="{DynamicResource TopLineA}" Offset="0.28"/>
-                                            <GradientStop Color="{DynamicResource TopLineB}" Offset="0.55"/>
-                                            <GradientStop Color="#00FFFFFF" Offset="1"/>
-                                        </LinearGradientBrush>
-                                    </Border.Background>
-                                </Border>
 
                                 <ContentPresenter Margin="{TemplateBinding Padding}"/>
                             </Grid>
@@ -192,9 +143,9 @@
                         <Grid.RenderTransform>
                             <ScaleTransform x:Name="Press" ScaleX="1" ScaleY="1"/>
                         </Grid.RenderTransform>
-                        <Border CornerRadius="18" Background="{TemplateBinding Background}"/>
-                        <Border CornerRadius="18" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1"/>
-                        <Border x:Name="Hover" CornerRadius="18" Background="{DynamicResource HoverWhite}"
+                        <Border CornerRadius="14" Background="{TemplateBinding Background}"/>
+                        <Border CornerRadius="14" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1"/>
+                        <Border x:Name="Hover" CornerRadius="14" Background="{DynamicResource HoverWhite}"
                                 Opacity="0" IsHitTestVisible="False"/>
                         <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Grid>

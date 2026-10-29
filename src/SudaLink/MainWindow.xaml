@@ -5,7 +5,7 @@
         xmlns:controls="clr-namespace:SudaLink.Controls"
         Title="SudaLink" Width="460" Height="690" MinWidth="420" MinHeight="580"
         WindowStartupLocation="CenterScreen" WindowStyle="None" ResizeMode="CanResize"
-        AllowsTransparency="True" Background="#00000000" FontFamily="Microsoft YaHei UI"
+        AllowsTransparency="False" Background="{DynamicResource WindowBase}" FontFamily="Microsoft YaHei UI"
         TextOptions.TextFormattingMode="Ideal" UseLayoutRounding="True"
         Closing="OnWindowClosing" Closed="OnWindowClosed" StateChanged="OnWindowStateChanged">
 
@@ -41,8 +41,7 @@
         </EventTrigger>
     </Window.Triggers>
 
-    <!-- 窗口本体就是这块玻璃：圆角由 Shell 用几何 Clip 裁出来，
-         外面不再留投影留白，也不画任何描边（系统边框与 DWM 方形投影都已关掉） -->
+    <!-- 窗口本体就是这块玻璃；圆角与投影交给 DWM，自己只负责内容 -->
     <Grid x:Name="Frame">
         <Grid x:Name="Shell" Background="{DynamicResource WindowBase}">
         <!-- 玻璃的底衬：一张有结构的壁纸。
@@ -100,7 +99,7 @@
                     </Grid.RowDefinitions>
 
                     <!-- 状态卡：只讲一件事，字号拉开 -->
-                    <controls:GlassPanel x:Name="StatusCard" Grid.Row="0" CornerRadius="22" Padding="22,20"
+                    <controls:GlassPanel x:Name="StatusCard" Grid.Row="0" CornerRadius="12" Padding="22,20"
                                          Backdrop="{Binding ElementName=BackdropImage}"
                                          Fill="{DynamicResource GlassStrong}">
                         <Grid>
@@ -197,7 +196,7 @@
                     </Grid>
 
                     <!-- 最近活动：第二块玻璃，页面有层次，玻璃也才看得出来 -->
-                    <controls:GlassPanel Grid.Row="2" Margin="0,12,0,0" CornerRadius="22" Padding="0"
+                    <controls:GlassPanel Grid.Row="2" Margin="0,12,0,0" CornerRadius="12" Padding="0"
                                          Fill="{DynamicResource GlassSoft}" Backdrop="{Binding ElementName=BackdropImage}">
                     <Grid>
                         <Grid.RowDefinitions>
@@ -206,7 +205,7 @@
                             <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
 
-                        <Border Grid.Row="0" Background="{DynamicResource BandFill}" CornerRadius="22,22,0,0"
+                        <Border Grid.Row="0" Background="{DynamicResource BandFill}" CornerRadius="12,12,0,0"
                                 BorderBrush="{DynamicResource LineSoft}" BorderThickness="0,0,0,1"
                                 Padding="14,11,8,9">
                             <Grid>
@@ -272,7 +271,7 @@
                 <!-- 账号 -->
                 <ScrollViewer x:Name="AccountsPage" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
                     <StackPanel>
-                        <controls:GlassPanel CornerRadius="20" Padding="10,8" Fill="{DynamicResource GlassStrong}" Backdrop="{Binding ElementName=BackdropImage}">
+                        <controls:GlassPanel CornerRadius="12" Padding="10,8" Fill="{DynamicResource GlassStrong}" Backdrop="{Binding ElementName=BackdropImage}">
                             <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto"/>
@@ -326,7 +325,7 @@
                             </Grid>
                         </controls:GlassPanel>
 
-                        <controls:GlassPanel Margin="0,10,0,0" CornerRadius="20" Padding="18,16"
+                        <controls:GlassPanel Margin="0,10,0,0" CornerRadius="12" Padding="18,16"
                                              Fill="{DynamicResource GlassStrong}" Backdrop="{Binding ElementName=BackdropImage}">
                             <StackPanel>
                                 <TextBlock x:Name="EditorTitle" Text="添加账号" FontSize="13.5" FontWeight="SemiBold"
@@ -388,7 +387,7 @@
                 <!-- 设置 -->
                 <ScrollViewer x:Name="SettingsPage" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
                     <StackPanel>
-                        <controls:GlassPanel CornerRadius="20" Padding="18,4" Fill="{DynamicResource GlassStrong}" Backdrop="{Binding ElementName=BackdropImage}">
+                        <controls:GlassPanel CornerRadius="12" Padding="18,4" Fill="{DynamicResource GlassStrong}" Backdrop="{Binding ElementName=BackdropImage}">
                             <StackPanel>
                                 <Grid Height="52">
                                     <StackPanel VerticalAlignment="Center">
@@ -486,7 +485,7 @@
                             </StackPanel>
                         </controls:GlassPanel>
 
-                        <controls:GlassPanel CornerRadius="20" Padding="18,14" Margin="0,10,0,0"
+                        <controls:GlassPanel CornerRadius="12" Padding="18,14" Margin="0,10,0,0"
                                              Fill="{DynamicResource GlassStrong}" Backdrop="{Binding ElementName=BackdropImage}">
                             <Grid>
                                 <StackPanel VerticalAlignment="Center">
@@ -503,7 +502,7 @@
                         </controls:GlassPanel>
 
                         <Grid Margin="6,12,4,0">
-                            <TextBlock Text="设置修改后立即生效并自动保存 · v4.7.0" FontSize="9.5"
+                            <TextBlock Text="设置修改后立即生效并自动保存 · v4.7.1" FontSize="9.5"
                                        Foreground="{DynamicResource Muted}" VerticalAlignment="Center"/>
                             <TextBlock Text="溪边木" FontSize="9.5" Foreground="{DynamicResource Muted}"
                                        HorizontalAlignment="Right" VerticalAlignment="Center"
@@ -514,7 +513,7 @@
             </Grid>
 
             <!-- 底部浮动玻璃标签栏 -->
-            <controls:GlassPanel Grid.Row="2" Height="56" Margin="16,10,16,14" CornerRadius="24" Padding="6"
+            <controls:GlassPanel Grid.Row="2" Height="56" Margin="16,10,16,14" CornerRadius="22" Padding="6"
                                  Fill="{DynamicResource GlassMedium}" Backdrop="{Binding ElementName=BackdropImage}" Shadow="{StaticResource FloatShadow}">
                 <Grid>
                     <Grid.ColumnDefinitions>
